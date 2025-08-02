@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -68,16 +69,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href}
-                  icon={<item.icon />}
-                  tooltip={{ children: item.label, side: 'right' }}
-                >
-                  <Link href={item.href}>
+                <Link href={item.href}>
+                  <SidebarMenuButton
+                    isActive={pathname === item.href}
+                    icon={<item.icon />}
+                    tooltip={{ children: item.label, side: 'right' }}
+                  >
                     {item.label}
-                  </Link>
-                </SidebarMenuButton>
+                  </SidebarMenuButton>
+                </Link>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

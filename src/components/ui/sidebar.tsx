@@ -569,10 +569,8 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       >
-        <>
-          {icon}
-          <span className="min-w-0">{children}</span>
-        </>
+        {icon}
+        <span className="min-w-0">{children}</span>
       </Comp>
     )
 
@@ -588,9 +586,7 @@ const SidebarMenuButton = React.forwardRef<
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          {button}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
