@@ -2,12 +2,29 @@ import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { services, attendanceRecords } from '@/lib/mock-data';
+import { services, attendanceRecords, exeats } from '@/lib/mock-data';
 import { AbsenteesTable } from './data-table';
 import { Button } from '@/components/ui/button';
 
 export default function AbsenteesPage() {
-  const absentees = attendanceRecords.filter(r => r.status === 'absent');
+  const isStudentOnExeat = (studentId: string, serviceDate: Date) => {
+    return exeats.some(exeat => 
+      exeat.student_id === studentId &&
+      serviceDate >= new Date(exeat.start_date) &&
+      serviceDate <= new Date(exeat.end_date)
+    );
+  };
+  
+  // For this example, we'll filter based on the first service.
+  // In a real app, this would be dynamic based on the selected service.
+  const selectedService = services[0];
+  const serviceDate = new Date(selectedService.date);
+
+  const absentees = attendanceRecords.filter(r => 
+    r.status === 'absent' && 
+    r.service_id === selectedService.id &&
+    !isStudentOnExeat(r.student_id, serviceDate)
+  );
 
   return (
     <AppShell>
