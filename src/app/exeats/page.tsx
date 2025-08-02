@@ -49,7 +49,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const exeatFormSchema = z.object({
-  studentId: z.string({ required_error: 'Please select a student.' }),
+  studentId: z.string({ required_error: 'Please enter a student ID.' }).min(1, 'Student ID is required.'),
   startDate: z.date({ required_error: 'A start date is required.' }),
   endDate: z.date({ required_error: 'An end date is required.' }),
   reason: z.string().optional(),
@@ -104,58 +104,11 @@ export default function ExeatManagerPage() {
                   control={form.control}
                   name="studentId"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Student</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? students.find(
-                                    (student) => student.id === field.value
-                                  )?.full_name
-                                : "Select student"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                           <Command>
-                            <CommandInput placeholder="Search student..." />
-                            <CommandList>
-                                <CommandEmpty>No student found.</CommandEmpty>
-                                <CommandGroup>
-                                {students.map((student) => (
-                                    <CommandItem
-                                    value={student.full_name}
-                                    key={student.id}
-                                    onSelect={() => {
-                                        form.setValue("studentId", student.id)
-                                    }}
-                                    >
-                                    <Check
-                                        className={cn(
-                                        "mr-2 h-4 w-4",
-                                        student.id === field.value
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                    />
-                                    {student.full_name}
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
-                            </CommandList>
-                            </Command>
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>Student ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. S001" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
