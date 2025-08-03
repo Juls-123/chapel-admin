@@ -32,15 +32,38 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { recentActions, services, students } from '@/lib/mock-data';
-import type { Service } from '@/lib/types';
+import { recentActions, services, students, attendanceRecords } from '@/lib/mock-data';
+import type { Service, AttendanceRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+interface AbsenteeSummary {
+    student_id: string;
+    student_name: string;
+    absences: number;
+}
 
 export default function DashboardPage() {
   const todayServices = services.filter(
     (service) =>
       new Date(service.date).toDateString() === new Date().toDateString()
   );
+
+  const absenteeCounts = attendanceRecords
+    .filter(record => record.status === 'absent')
+    .reduce((acc, record) => {
+        acc[record.student_id] = (acc[record.student_id] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+  const topAbsentees: AbsenteeSummary[] = Object.entries(absenteeCounts)
+    .map(([student_id, absences]) => ({
+        student_id,
+        student_name: students.find(s => s.id === student_id)?.full_name || 'Unknown Student',
+        absences,
+    }))
+    .sort((a, b) => b.absences - a.absences)
+    .slice(0, 5);
+
 
   return (
     <AppShell>
@@ -168,18 +191,24 @@ export default function DashboardPage() {
           
           <Card className="shadow-sm">
             <CardHeader>
-                <CardTitle>Campus View</CardTitle>
-                <CardDescription>A visual of the chapel grounds.</CardDescription>
+                <CardTitle>Absentee Alerts</CardTitle>
+                <CardDescription>Top 5 students with the most absences this month.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Image 
-                    src="https://placehold.co/600x400.png"
-                    alt="Chapel"
-                    width={600}
-                    height={400}
-                    className="rounded-lg object-cover"
-                    data-ai-hint="chapel building"
-                />
+                <div className="space-y-4">
+                    {topAbsentees.map(student => (
+                        <div key={student.student_id} className="flex items-center">
+                            <Avatar className="h-9 w-9">
+                                <AvatarFallback>{student.student_name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
+                            </Avatar>
+                            <div className="ml-4 space-y-1">
+                                <p className="text-sm font-medium leading-none">{student.student_name}</p>
+                                <p className="text-sm text-muted-foreground">{student.student_id}</p>
+                            </div>
+                            <div className="ml-auto font-medium">{student.absences} absences</div>
+                        </div>
+                    ))}
+                </div>
             </CardContent>
           </Card>
         </div>
@@ -208,7 +237,7 @@ function ServiceCard({ service }: { service: Service }) {
             </Badge>
         </div>
         <CardDescription>
-          {service.date.toLocaleTimeString([], {
+          {new Date(service.date).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           })}
