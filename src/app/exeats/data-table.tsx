@@ -161,17 +161,17 @@ export function ExeatTable({ data }: { data: Exeat[] }) {
     <Card className="shadow-sm">
       <CardContent className="p-4">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 md:flex-row">
             <Input
               placeholder="Filter by student..."
               value={(table.getColumn('student_name')?.getFilterValue() as string) ?? ''}
               onChange={(event) =>
                 table.getColumn('student_name')?.setFilterValue(event.target.value)
               }
-              className="max-w-sm"
+              className="max-w-full md:max-w-sm"
             />
              <Select onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? '' : value)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>

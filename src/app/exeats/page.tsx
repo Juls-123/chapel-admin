@@ -91,7 +91,7 @@ export default function ExeatManagerPage() {
               Add Exeat
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Exeat</DialogTitle>
               <DialogDescription>
