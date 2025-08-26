@@ -63,3 +63,7 @@ export interface RecentAction {
   target: string;
   date: Date;
 }
+
+export type StudentWithRecords = Student & {
+  attendance: AttendanceRecord[];
+};
