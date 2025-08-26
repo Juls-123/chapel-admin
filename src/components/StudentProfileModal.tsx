@@ -56,6 +56,11 @@ export function StudentProfileModal({ student, open, onOpenChange }: StudentProf
               <DialogDescription>
                 {student.matric_number} &middot; {student.email}
               </DialogDescription>
+               <div className="text-sm text-muted-foreground mt-1 space-x-2">
+                <span>Level: {student.level}</span>
+                <span>&middot;</span>
+                <span>Parent's Tel: {student.parents_phone_number}</span>
+              </div>
             </div>
           </div>
         </DialogHeader>

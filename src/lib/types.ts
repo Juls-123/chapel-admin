@@ -4,6 +4,8 @@ export interface Student {
   full_name: string;
   email: string;
   status: 'active' | 'paused';
+  level: number;
+  parents_phone_number: string;
 }
 
 export interface Service {

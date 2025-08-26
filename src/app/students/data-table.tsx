@@ -105,6 +105,11 @@ export function StudentTable({ data }: { data: Student[] }) {
       header: 'Email',
     },
     {
+        accessorKey: 'level',
+        header: 'Level',
+        cell: ({ row }) => `${row.original.level}L`
+    },
+    {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => {

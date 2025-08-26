@@ -35,11 +35,14 @@ import { StudentTable } from './data-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Student } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const studentFormSchema = z.object({
   fullName: z.string().min(1, 'Full name is required.'),
   matricNumber: z.string().min(1, 'Matriculation number is required.'),
   email: z.string().email('Invalid email address.'),
+  level: z.coerce.number().min(100).max(500),
+  parentsPhoneNumber: z.string().min(10, 'Please enter a valid phone number.'),
 });
 
 type StudentFormValues = z.infer<typeof studentFormSchema>;
@@ -48,6 +51,8 @@ interface ParsedStudent {
   matricNumber: string;
   fullName: string;
   email: string;
+  level: number;
+  parents_phone_number: string;
 }
 
 export default function StudentManagementPage() {
@@ -68,6 +73,8 @@ export default function StudentManagementPage() {
           matricNumber: `NEW-STU-00${i + 1}`,
           fullName: `New Student ${i + 1}`,
           email: `new.student${i+1}@example.com`,
+          level: 100,
+          parents_phone_number: '08012345678'
         }))
       );
       setParsedData(mockParsed);
@@ -156,6 +163,43 @@ export default function StudentManagementPage() {
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>
                                         <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="level"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Level</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a level" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="100">100 Level</SelectItem>
+                                        <SelectItem value="200">200 Level</SelectItem>
+                                        <SelectItem value="300">300 Level</SelectItem>
+                                        <SelectItem value="400">400 Level</SelectItem>
+                                        <SelectItem value="500">500 Level</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="parentsPhoneNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Parent's Phone Number</FormLabel>
+                                    <FormControl>
+                                        <Input type="tel" placeholder="e.g. 08012345678" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
