@@ -36,18 +36,21 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StudentProfileModal } from '@/components/StudentProfileModal';
 import { students, attendanceRecords } from '@/lib/mock-data';
+import { useToast } from '@/hooks/use-toast';
 
 
 type WarningLettersTableProps = {
     data: WarningLetterSummary[];
     onRowSelect: (student: WarningLetterSummary) => void;
+    onUpdateStatus: (matricNumber: string, status: WarningLetterSummary['status']) => void;
 };
 
-export function WarningLettersTable({ data, onRowSelect }: WarningLettersTableProps) {
+export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: WarningLettersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(data.length > 0 ? data[0].matric_number : null);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithRecords | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
 
   const getInitials = (studentName: string) => {
     const names = studentName.split(" ");
@@ -71,6 +74,22 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
       setIsModalOpen(true);
     }
   };
+
+  const handleResend = (summary: WarningLetterSummary) => {
+    onUpdateStatus(summary.matric_number, 'sent');
+    toast({
+        title: "Letter Sent",
+        description: `Warning letter for ${summary.student_name} has been marked as sent.`
+    })
+  }
+
+  const handleOverride = (summary: WarningLetterSummary) => {
+    onUpdateStatus(summary.matric_number, 'overridden');
+    toast({
+        title: "Warning Overridden",
+        description: `Warning for ${summary.student_name} has been overridden.`
+    })
+  }
 
   const columns: ColumnDef<WarningLetterSummary>[] = [
       {
@@ -126,26 +145,33 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
       },
       {
           id: 'actions',
-          cell: ({ row }) => (
-              <div className="text-right">
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Resend Letter</DropdownMenuItem>
-                      <DropdownMenuItem>Override Warning</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewProfile(row.original.matric_number)}>
-                        View History
-                      </DropdownMenuItem>
-                  </DropdownMenuContent>
-                  </DropdownMenu>
-              </div>
-          )
+          cell: ({ row }) => {
+              const summary = row.original;
+              return (
+                  <div className="text-right">
+                      <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleResend(summary)} disabled={summary.status === 'sent' || summary.status === 'overridden'}>
+                            Resend Letter
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleOverride(summary)} disabled={summary.status === 'overridden'}>
+                            Override Warning
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewProfile(row.original.matric_number)}>
+                            View History
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                      </DropdownMenu>
+                  </div>
+              )
+          }
       }
   ];
 
@@ -160,6 +186,15 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
     state: {
       sorting,
     },
+    meta: {
+        selectedRowId,
+        setSelectedRowId,
+    },
+    initialState: {
+        pagination: {
+            pageSize: 5
+        }
+    }
   });
 
   return (
@@ -194,7 +229,7 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
-                      data-state={selectedRowId === (row.original as WarningLetterSummary).matric_number && 'selected'}
+                      data-state={selectedRowId === (row.original as WarningLetterSummary).matric_number ? 'selected' : ''}
                       onClick={() => handleRowClick(row)}
                       className="cursor-pointer"
                     >
