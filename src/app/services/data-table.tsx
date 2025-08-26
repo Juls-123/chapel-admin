@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -79,7 +80,7 @@ const columns: ColumnDef<Service>[] = [
       <div className="font-medium">
         {format(new Date(row.getValue('date')), 'PPP')}
         <div className="text-sm text-muted-foreground">
-          {format(new Date(row.getValue('date')), 'p')}
+          {format(new Date(row.getValue('date')), 'HH:mm')}
         </div>
       </div>
     ),
