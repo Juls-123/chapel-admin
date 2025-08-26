@@ -3,6 +3,7 @@ export interface Student {
   matric_number: string;
   full_name: string;
   email: string;
+  status: 'active' | 'paused';
 }
 
 export interface Service {

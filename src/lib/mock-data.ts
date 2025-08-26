@@ -1,12 +1,12 @@
 import type { Student, Service, Exeat, ManualClear, AttendanceRecord, WarningLetterSummary, RecentAction } from './types';
 
 export const students: Student[] = [
-  { id: 'S001', matric_number: 'STU-001', full_name: 'Adewale Adebayo', email: 'adewale.adebayo@mtu.edu.ng' },
-  { id: 'S002', matric_number: 'STU-002', full_name: 'Chidinma Okoro', email: 'chidinma.okoro@mtu.edu.ng' },
-  { id: 'S003', matric_number: 'STU-003', full_name: 'Bolanle Adeyemi', email: 'bolanle.adeyemi@mtu.edu.ng' },
-  { id: 'S004', matric_number: 'STU-004', full_name: 'Emeka Okafor', email: 'emeka.okafor@mtu.edu.ng' },
-  { id: 'S005', matric_number: 'STU-005', full_name: 'Fatima Bello', email: 'fatima.bello@mtu.edu.ng' },
-  { id: 'S006', matric_number: 'STU-006', full_name: 'Oluwaseun Adekunle', email: 'oluwaseun.adekunle@mtu.edu.ng' },
+  { id: 'S001', matric_number: 'STU-001', full_name: 'Adewale Adebayo', email: 'adewale.adebayo@mtu.edu.ng', status: 'active' },
+  { id: 'S002', matric_number: 'STU-002', full_name: 'Chidinma Okoro', email: 'chidinma.okoro@mtu.edu.ng', status: 'active' },
+  { id: 'S003', matric_number: 'STU-003', full_name: 'Bolanle Adeyemi', email: 'bolanle.adeyemi@mtu.edu.ng', status: 'paused' },
+  { id: 'S004', matric_number: 'STU-004', full_name: 'Emeka Okafor', email: 'emeka.okafor@mtu.edu.ng', status: 'active' },
+  { id: 'S005', matric_number: 'STU-005', full_name: 'Fatima Bello', email: 'fatima.bello@mtu.edu.ng', status: 'active' },
+  { id: 'S006', matric_number: 'STU-006', full_name: 'Oluwaseun Adekunle', email: 'oluwaseun.adekunle@mtu.edu.ng', status: 'active' },
 ];
 
 export const services: Service[] = [
