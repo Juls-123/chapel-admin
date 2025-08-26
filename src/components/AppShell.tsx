@@ -10,6 +10,7 @@ import {
   MailWarning,
   ChevronRight,
   User,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -34,6 +35,7 @@ import { Separator } from './ui/separator';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/services', label: 'Services', icon: CalendarCheck },
+  { href: '/students', label: 'Students', icon: Users },
   { href: '/exeats', label: 'Exeat Manager', icon: UserMinus },
   { href: '/attendance', label: 'Attendance Upload', icon: FileUp },
   { href: '/absentees', label: 'Absentees', icon: UserX },
