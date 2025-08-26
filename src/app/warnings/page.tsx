@@ -126,7 +126,7 @@ export default function WarningLettersPage() {
                             
                             <p className="mb-4">Dear {getFirstName(selectedStudent.student_name)},</p>
                             
-                            <p className="mb-4">This letter serves as a formal warning regarding your attendance at required chapel services. Our records indicate that you have missed <strong>{selectedStudent.miss_count}</strong> services for the week starting <strong>{format(new Date(selectedStudent.week_start), 'PPP')}</strong>.</p>
+                            <p className="mb-4">This letter serves as a formal warning regarding your attendance at required chapel services. Our records indicate that you have missed <strong>{selectedStudent.miss_count}</strong> services for the week of <strong>{format(new Date(selectedStudent.week_start), 'PPP')}</strong> to <strong>{format(endOfWeek(new Date(selectedStudent.week_start), { weekStartsOn: 1 }), 'PPP')}</strong>.</p>
                             
                             <p className="mb-2">The dates of the missed services are as follows:</p>
                             <ul className="list-disc list-inside mb-4">
