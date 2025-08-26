@@ -63,6 +63,8 @@ export function StudentProfileModal({ student, open, onOpenChange }: StudentProf
                 <span>Level: {student.level}</span>
                 <span>&middot;</span>
                 <span>Parent's Tel: {student.parents_phone_number}</span>
+                <span>&middot;</span>
+                <span>Parent's Email: {student.parents_email}</span>
               </div>
             </div>
           </div>

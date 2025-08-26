@@ -5,6 +5,7 @@ export interface Student {
   middle_name: string;
   last_name: string;
   email: string;
+  parents_email: string;
   status: 'active' | 'paused';
   level: number;
   parents_phone_number: string;

@@ -1,12 +1,12 @@
 import type { Student, Service, Exeat, ManualClear, AttendanceRecord, WarningLetterSummary, RecentAction } from './types';
 
 export const students: Student[] = [
-  { id: 'S001', matric_number: 'STU-001', first_name: 'Adewale', middle_name: 'Chukwuebuka', last_name: 'Adebayo', email: 'adewale.adebayo@mtu.edu.ng', status: 'active', level: 400, parents_phone_number: '08012345671' },
-  { id: 'S002', matric_number: 'STU-002', first_name: 'Chidinma', middle_name: 'Afolabi', last_name: 'Okoro', email: 'chidinma.okoro@mtu.edu.ng', status: 'active', level: 200, parents_phone_number: '08012345672' },
-  { id: 'S003', matric_number: 'STU-003', first_name: 'Bolanle', middle_name: 'Ngozi', last_name: 'Adeyemi', email: 'bolanle.adeyemi@mtu.edu.ng', status: 'paused', level: 300, parents_phone_number: '08012345673' },
-  { id: 'S004', matric_number: 'STU-004', first_name: 'Emeka', middle_name: 'Oluwafemi', last_name: 'Okafor', email: 'emeka.okafor@mtu.edu.ng', status: 'active', level: 100, parents_phone_number: '08012345674' },
-  { id: 'S005', matric_number: 'STU-005', first_name: 'Fatima', middle_name: 'Abisola', last_name: 'Bello', email: 'fatima.bello@mtu.edu.ng', status: 'active', level: 500, parents_phone_number: '08012345675' },
-  { id: 'S006', matric_number: 'STU-006', first_name: 'Oluwaseun', middle_name: 'Ikenna', last_name: 'Adekunle', email: 'oluwaseun.adekunle@mtu.edu.ng', status: 'active', level: 400, parents_phone_number: '08012345676' },
+  { id: 'S001', matric_number: 'STU-001', first_name: 'Adewale', middle_name: 'Chukwuebuka', last_name: 'Adebayo', email: 'adewale.adebayo@mtu.edu.ng', parents_email: 'parent.adebayo@example.com', status: 'active', level: 400, parents_phone_number: '08012345671' },
+  { id: 'S002', matric_number: 'STU-002', first_name: 'Chidinma', middle_name: 'Afolabi', last_name: 'Okoro', email: 'chidinma.okoro@mtu.edu.ng', parents_email: 'parent.okoro@example.com', status: 'active', level: 200, parents_phone_number: '08012345672' },
+  { id: 'S003', matric_number: 'STU-003', first_name: 'Bolanle', middle_name: 'Ngozi', last_name: 'Adeyemi', email: 'bolanle.adeyemi@mtu.edu.ng', parents_email: 'parent.adeyemi@example.com', status: 'paused', level: 300, parents_phone_number: '08012345673' },
+  { id: 'S004', matric_number: 'STU-004', first_name: 'Emeka', middle_name: 'Oluwafemi', last_name: 'Okafor', email: 'emeka.okafor@mtu.edu.ng', parents_email: 'parent.okafor@example.com', status: 'active', level: 100, parents_phone_number: '08012345674' },
+  { id: 'S005', matric_number: 'STU-005', first_name: 'Fatima', middle_name: 'Abisola', last_name: 'Bello', email: 'fatima.bello@mtu.edu.ng', parents_email: 'parent.bello@example.com', status: 'active', level: 500, parents_phone_number: '08012345675' },
+  { id: 'S006', matric_number: 'STU-006', first_name: 'Oluwaseun', middle_name: 'Ikenna', last_name: 'Adekunle', email: 'oluwaseun.adekunle@mtu.edu.ng', parents_email: 'parent.adekunle@example.com', status: 'active', level: 400, parents_phone_number: '08012345676' },
 ];
 
 const getFullName = (student: Student) => `${student.first_name} ${student.middle_name} ${student.last_name}`;

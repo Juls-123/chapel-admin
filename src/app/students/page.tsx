@@ -43,6 +43,7 @@ const studentFormSchema = z.object({
   lastName: z.string().min(1, 'Last name is required.'),
   matricNumber: z.string().min(1, 'Matriculation number is required.'),
   email: z.string().email('Invalid email address.'),
+  parentsEmail: z.string().email('Invalid email address.'),
   level: z.coerce.number().min(100).max(500),
   parentsPhoneNumber: z.string().min(10, 'Please enter a valid phone number.'),
 });
@@ -55,6 +56,7 @@ interface ParsedStudent {
   email: string;
   level: number;
   parents_phone_number: string;
+  parents_email: string;
 }
 
 export default function StudentManagementPage() {
@@ -76,7 +78,8 @@ export default function StudentManagementPage() {
           fullName: `New Student ${i + 1}`,
           email: `new.student${i+1}@example.com`,
           level: 100,
-          parents_phone_number: '08012345678'
+          parents_phone_number: '08012345678',
+          parents_email: `parent.new${i+1}@example.com`,
         }))
       );
       setParsedData(mockParsed);
@@ -124,7 +127,7 @@ export default function StudentManagementPage() {
                     Add Student
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Add New Student</DialogTitle>
                     <DialogDescription>Manually register a single student.</DialogDescription>
@@ -172,56 +175,72 @@ export default function StudentManagementPage() {
                                 )}
                             />
                         </div>
-                        <FormField
-                            control={form.control}
-                            name="matricNumber"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Matriculation Number</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. STU-123" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                              control={form.control}
+                              name="matricNumber"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Matriculation Number</FormLabel>
+                                      <FormControl>
+                                          <Input placeholder="e.g. STU-123" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={form.control}
+                              name="level"
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <FormLabel>Level</FormLabel>
+                                  <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                                      <FormControl>
+                                          <SelectTrigger>
+                                              <SelectValue placeholder="Select a level" />
+                                          </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          <SelectItem value="100">100 Level</SelectItem>
+                                          <SelectItem value="200">200 Level</SelectItem>
+                                          <SelectItem value="300">300 Level</SelectItem>
+                                          <SelectItem value="400">400 Level</SelectItem>
+                                          <SelectItem value="500">500 Level</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                        </div>
                         <FormField
                             control={form.control}
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email</FormLabel>
+                                    <FormLabel>Student Email</FormLabel>
                                     <FormControl>
-                                        <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
+                                        <Input type="email" placeholder="e.g. john.doe@mtu.edu.ng" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <FormField
                             control={form.control}
-                            name="level"
+                            name="parentsEmail"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Level</FormLabel>
-                                <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                                    <FormLabel>Parent's Email</FormLabel>
                                     <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a level" />
-                                        </SelectTrigger>
+                                        <Input type="email" placeholder="e.g. parent@example.com" {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="100">100 Level</SelectItem>
-                                        <SelectItem value="200">200 Level</SelectItem>
-                                        <SelectItem value="300">300 Level</SelectItem>
-                                        <SelectItem value="400">400 Level</SelectItem>
-                                        <SelectItem value="500">500 Level</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
+                                    <FormMessage />
                                 </FormItem>
                             )}
-                        />
+                          />
                          <FormField
                             control={form.control}
                             name="parentsPhoneNumber"
@@ -235,6 +254,7 @@ export default function StudentManagementPage() {
                                 </FormItem>
                             )}
                         />
+                        </div>
                         <DialogFooter>
                             <Button type="submit">Add Student</Button>
                         </DialogFooter>
