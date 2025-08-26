@@ -13,7 +13,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Calendar as CalendarIcon, Filter, Download } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -44,13 +44,46 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import type { Service } from '@/lib/types';
+import type { Service, AttendanceRecord } from '@/lib/types';
+import { attendanceRecords } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 type ServiceTableProps = {
     data: Service[];
     onEdit: (service: Service) => void;
+};
+
+const downloadCSV = (data: any[], filename: string) => {
+    const csvRows = [];
+    const headers = Object.keys(data[0]);
+    csvRows.push(headers.join(','));
+
+    for (const row of data) {
+        const values = headers.map(header => {
+            const escaped = (''+row[header]).replace(/"/g, '\\"');
+            return `"${escaped}"`;
+        });
+        csvRows.push(values.join(','));
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+const handleDownloadAttendance = (serviceId: string, serviceName: string) => {
+    const records = attendanceRecords.filter(r => r.service_id === serviceId);
+    if(records.length > 0) {
+        downloadCSV(records, `${serviceName}_attendance.csv`);
+    } else {
+        alert('No attendance records found for this service.');
+    }
 };
 
 export function ServiceTable({ data, onEdit }: ServiceTableProps) {
@@ -136,6 +169,10 @@ export function ServiceTable({ data, onEdit }: ServiceTableProps) {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onEdit(service)}>Edit Service</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadAttendance(service.id, service.name || service.type)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Attendance
+                  </DropdownMenuItem>
                   <DropdownMenuItem>View Attendees</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
