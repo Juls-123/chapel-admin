@@ -48,101 +48,107 @@ import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-const columns: ColumnDef<Service>[] = [
-  {
-    accessorKey: 'type',
-    header: 'Type',
-    cell: ({ row }) => {
-      const service = row.original;
-      const isSpecial = service.type === 'special';
-      return (
-        <div className="flex flex-col">
-          <span className="font-medium capitalize">{isSpecial ? service.name : service.type}</span>
-          {isSpecial && <span className="text-xs text-muted-foreground">Special Service</span>}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: 'date',
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          Date
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => (
-      <div className="font-medium">
-        {format(new Date(row.getValue('date')), 'PPP')}
-        <div className="text-sm text-muted-foreground">
-          {format(new Date(row.getValue('date')), 'HH:mm')}
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-        const status = row.getValue('status') as Service['status'];
-        const statusConfig = {
-            upcoming: { label: "Upcoming", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" },
-            active: { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" },
-            completed: { label: "Completed", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300" },
-            cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" },
-        }
-        return (
-            <Badge variant="outline" className={cn("border-0 capitalize", statusConfig[status].color)}>
-                {statusConfig[status].label}
-            </Badge>
-        )
-    }
-  },
-  {
-    accessorKey: 'created_by',
-    header: 'Created By',
-  },
-  {
-    id: 'actions',
-    cell: ({ row }) => {
-      const service = row.original;
-      return (
-        <div className="text-right">
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(service.id)}>
-                Copy Service ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Edit Service</DropdownMenuItem>
-                <DropdownMenuItem>View Attendees</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                Cancel Service
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-      );
-    },
-  },
-];
+type ServiceTableProps = {
+    data: Service[];
+    onEdit: (service: Service) => void;
+};
 
-export function ServiceTable({ data }: { data: Service[] }) {
+export function ServiceTable({ data, onEdit }: ServiceTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const columns: ColumnDef<Service>[] = [
+    {
+      accessorKey: 'type',
+      header: 'Type',
+      cell: ({ row }) => {
+        const service = row.original;
+        const isSpecial = service.type === 'special';
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium capitalize">{isSpecial ? service.name : service.type}</span>
+            {isSpecial && <span className="text-xs text-muted-foreground">Special Service</span>}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'date',
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
+            Date
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }) => (
+        <div className="font-medium">
+          {format(new Date(row.getValue('date')), 'PPP')}
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(row.getValue('date')), 'HH:mm')}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+          const status = row.getValue('status') as Service['status'];
+          const statusConfig = {
+              upcoming: { label: "Upcoming", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" },
+              active: { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" },
+              completed: { label: "Completed", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300" },
+              cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" },
+          }
+          return (
+              <Badge variant="outline" className={cn("border-0 capitalize", statusConfig[status].color)}>
+                  {statusConfig[status].label}
+              </Badge>
+          )
+      }
+    },
+    {
+      accessorKey: 'created_by',
+      header: 'Created By',
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const service = row.original;
+        return (
+          <div className="text-right">
+              <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(service.id)}>
+                  Copy Service ID
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onEdit(service)}>Edit Service</DropdownMenuItem>
+                  <DropdownMenuItem>View Attendees</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  Cancel Service
+                  </DropdownMenuItem>
+              </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+        );
+      },
+    },
+  ];
+
 
   const table = useReactTable({
     data,

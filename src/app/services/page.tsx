@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +37,7 @@ import { services } from '@/lib/mock-data';
 import { ServiceTable } from './data-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import type { Service } from '@/lib/types';
 
 const serviceFormSchema = z.object({
   type: z.enum(['morning', 'evening', 'special'], { required_error: 'Please select a service type.' }),
@@ -56,25 +57,62 @@ type ServiceFormValues = z.infer<typeof serviceFormSchema>;
 
 export default function ServiceManagementPage() {
     const [open, setOpen] = useState(false);
+    const [editingService, setEditingService] = useState<Service | null>(null);
     const { toast } = useToast();
     
     const form = useForm<ServiceFormValues>({
         resolver: zodResolver(serviceFormSchema),
         defaultValues: {
             type: 'morning',
+            name: '',
         }
     });
+
+    useEffect(() => {
+        if (editingService) {
+            form.reset({
+                type: editingService.type,
+                name: editingService.name || '',
+                date: new Date(editingService.date),
+            });
+        } else {
+            form.reset({
+                type: 'morning',
+                name: '',
+                date: undefined,
+            });
+        }
+    }, [editingService, form]);
     
     const serviceType = form.watch('type');
 
     function onSubmit(data: ServiceFormValues) {
-        console.log(data);
-        toast({
-            title: "Service Created",
-            description: "The new service has been successfully scheduled.",
-        });
+        if (editingService) {
+            console.log("Updating service:", { ...editingService, ...data });
+            toast({
+                title: "Service Updated",
+                description: "The service has been successfully updated.",
+            });
+        } else {
+            console.log("Creating service:", data);
+            toast({
+                title: "Service Created",
+                description: "The new service has been successfully scheduled.",
+            });
+        }
         setOpen(false);
+        setEditingService(null);
         form.reset();
+    }
+
+    const handleEdit = (service: Service) => {
+        setEditingService(service);
+        setOpen(true);
+    };
+    
+    const handleCreate = () => {
+        setEditingService(null);
+        setOpen(true);
     }
 
   return (
@@ -83,18 +121,23 @@ export default function ServiceManagementPage() {
         title="Service Management"
         description="View, create, and manage all chapel services."
       >
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                <PlusCircle />
-                Create Service
-                </Button>
-            </DialogTrigger>
+        <Button onClick={handleCreate}>
+            <PlusCircle />
+            Create Service
+        </Button>
+      </PageHeader>
+
+      <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+              setEditingService(null);
+          }
+      }}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Create New Service</DialogTitle>
+                    <DialogTitle>{editingService ? 'Edit Service' : 'Create New Service'}</DialogTitle>
                     <DialogDescription>
-                        Schedule a new chapel service for attendance tracking.
+                        {editingService ? 'Update the details of this service.' : 'Schedule a new chapel service for attendance tracking.'}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -105,7 +148,7 @@ export default function ServiceManagementPage() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Service Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select a service type" />
@@ -190,15 +233,15 @@ export default function ServiceManagementPage() {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="submit">Create Service</Button>
+                            <Button type="submit">{editingService ? 'Save Changes' : 'Create Service'}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
             </DialogContent>
         </Dialog>
-      </PageHeader>
+
       <div className="grid gap-6">
-        <ServiceTable data={services} />
+        <ServiceTable data={services} onEdit={handleEdit} />
       </div>
     </AppShell>
   );
