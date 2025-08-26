@@ -1,7 +1,9 @@
 export interface Student {
   id: string;
   matric_number: string;
-  full_name: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
   email: string;
   status: 'active' | 'paused';
   level: number;

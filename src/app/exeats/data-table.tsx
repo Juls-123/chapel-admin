@@ -43,7 +43,7 @@ import {
   } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Exeat, StudentWithRecords } from '@/lib/types';
+import type { Exeat, StudentWithRecords, Student } from '@/lib/types';
 import { students, attendanceRecords } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -54,6 +54,14 @@ export function ExeatTable({ data }: { data: Exeat[] }) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithRecords | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const getInitials = (studentName: string) => {
+    const names = studentName.split(" ");
+    if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return names[0][0] || '';
+  }
 
   const handleViewProfile = (matricNumber: string) => {
     const student = students.find(s => s.matric_number === matricNumber);
@@ -72,7 +80,7 @@ export function ExeatTable({ data }: { data: Exeat[] }) {
               <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                       <AvatarFallback>
-                          {row.original.student_name.split(" ").map(n => n[0]).join("")}
+                          {getInitials(row.original.student_name)}
                       </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">

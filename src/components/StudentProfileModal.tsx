@@ -43,16 +43,19 @@ export function StudentProfileModal({ student, open, onOpenChange }: StudentProf
     }
   };
 
+  const fullName = `${student.first_name} ${student.middle_name} ${student.last_name}`;
+  const initials = `${student.first_name[0]}${student.last_name[0]}`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarFallback>{student.full_name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <DialogTitle className="text-2xl">{student.full_name}</DialogTitle>
+              <DialogTitle className="text-2xl">{fullName}</DialogTitle>
               <DialogDescription>
                 {student.matric_number} &middot; {student.email}
               </DialogDescription>

@@ -36,7 +36,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { recentActions, services, students, attendanceRecords } from '@/lib/mock-data';
-import type { Service, AttendanceRecord } from '@/lib/types';
+import type { Service, AttendanceRecord, Student } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface AbsenteeSummary {
@@ -44,6 +44,10 @@ interface AbsenteeSummary {
     student_name: string;
     absences: number;
 }
+
+const getFullName = (student: Student) => `${student.first_name} ${student.middle_name} ${student.last_name}`;
+const getInitials = (student: Student) => `${student.first_name[0]}${student.last_name[0]}`;
+
 
 export default function DashboardPage() {
   const todayServices = services.filter(
@@ -59,11 +63,14 @@ export default function DashboardPage() {
     }, {} as Record<string, number>);
 
   const topAbsentees: AbsenteeSummary[] = Object.entries(absenteeCounts)
-    .map(([matric_number, absences]) => ({
-        matric_number,
-        student_name: students.find(s => s.matric_number === matric_number)?.full_name || 'Unknown Student',
-        absences,
-    }))
+    .map(([matric_number, absences]) => {
+        const student = students.find(s => s.matric_number === matric_number);
+        return {
+            matric_number,
+            student_name: student ? getFullName(student) : 'Unknown Student',
+            absences,
+        };
+    })
     .sort((a, b) => b.absences - a.absences)
     .slice(0, 5);
 
@@ -207,18 +214,21 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {topAbsentees.map(student => (
-                        <div key={student.matric_number} className="flex items-center">
-                            <Avatar className="h-9 w-9">
-                                <AvatarFallback>{student.student_name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
-                            </Avatar>
-                            <div className="ml-4 space-y-1">
-                                <p className="text-sm font-medium leading-none">{student.student_name}</p>
-                                <p className="text-sm text-muted-foreground">{student.matric_number}</p>
+                    {topAbsentees.map(summary => {
+                        const student = students.find(s => s.matric_number === summary.matric_number);
+                        return (
+                            <div key={summary.matric_number} className="flex items-center">
+                                <Avatar className="h-9 w-9">
+                                    <AvatarFallback>{student ? getInitials(student) : 'U'}</AvatarFallback>
+                                </Avatar>
+                                <div className="ml-4 space-y-1">
+                                    <p className="text-sm font-medium leading-none">{summary.student_name}</p>
+                                    <p className="text-sm text-muted-foreground">{summary.matric_number}</p>
+                                </div>
+                                <div className="ml-auto font-medium">{summary.absences} absences</div>
                             </div>
-                            <div className="ml-auto font-medium">{student.absences} absences</div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             </CardContent>
           </Card>
@@ -257,10 +267,7 @@ function ServiceCard({ service }: { service: Service }) {
             <Avatar key={student.matric_number} className="border-2 border-background">
               <AvatarImage src={`https://placehold.co/40x40.png`} data-ai-hint="student portrait" />
               <AvatarFallback>
-                {student.full_name
-                  .split(' ')
-                  .map((n) => n[0])
-                  .join('')}
+                {getInitials(student)}
               </AvatarFallback>
             </Avatar>
           ))}

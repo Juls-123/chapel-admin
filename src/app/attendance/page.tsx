@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { students, services } from '@/lib/mock-data';
-import type { Service } from '@/lib/types';
+import type { Service, Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface ParsedRecord {
@@ -33,6 +33,8 @@ const attendanceUploadSchema = z.object({
 });
 
 type AttendanceUploadFormValues = z.infer<typeof attendanceUploadSchema>;
+
+const getFullName = (student: Student) => `${student.first_name} ${student.middle_name} ${student.last_name}`;
 
 export default function AttendanceUploadPage() {
   const [files, setFiles] = useState<File[]>([]);
@@ -70,7 +72,7 @@ export default function AttendanceUploadPage() {
     const mockParsed: ParsedRecord[] = acceptedFiles.flatMap(f => 
       students.slice(0, 5).map((s, i) => ({
         matricNumber: s.matric_number,
-        studentName: s.full_name,
+        studentName: getFullName(s),
         serviceId: service!.id,
         serviceName: service!.name || service!.type,
         status: i % 4 === 0 ? 'unmatched' : 'matched',
@@ -326,5 +328,3 @@ export default function AttendanceUploadPage() {
     </AppShell>
   );
 }
-
-    

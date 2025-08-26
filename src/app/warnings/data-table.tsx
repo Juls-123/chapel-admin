@@ -49,6 +49,14 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
   const [selectedStudent, setSelectedStudent] = useState<StudentWithRecords | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const getInitials = (studentName: string) => {
+    const names = studentName.split(" ");
+    if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return names[0]?.[0] || '';
+  }
+
   const handleRowClick = (row: any) => {
     const student = row.original as WarningLetterSummary;
     setSelectedRowId(student.matric_number);
@@ -74,7 +82,7 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
                   <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                           <AvatarFallback>
-                              {summary.student_name.split(" ").map(n => n[0]).join("")}
+                              {getInitials(summary.student_name)}
                           </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">

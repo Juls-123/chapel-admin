@@ -53,6 +53,8 @@ export function StudentTable({ data }: { data: Student[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
+  const getFullName = (student: Student) => `${student.first_name} ${student.last_name}`;
+
   const handleViewProfile = (matricNumber: string) => {
     const student = data.find(s => s.matric_number === matricNumber);
     if (student) {
@@ -68,7 +70,7 @@ export function StudentTable({ data }: { data: Student[] }) {
       console.log(`Setting student ${student.matric_number} to ${newStatus}`);
       toast({
           title: `Student ${newStatus === 'active' ? 'Resumed' : 'Paused'}`,
-          description: `${student.full_name} has been ${newStatus}.`,
+          description: `${getFullName(student)} has been ${newStatus}.`,
       });
       // For the sake of this demo, we won't be updating the state directly.
       // In a real app, you'd refetch the data or update the local state.
@@ -86,19 +88,25 @@ export function StudentTable({ data }: { data: Student[] }) {
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
       ),
-      cell: ({ row }) => (
-          <div className="flex items-center gap-3">
-              <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                      {row.original.full_name.split(" ").map(n => n[0]).join("")}
-                  </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                  <span className="font-medium">{row.original.full_name}</span>
-                  <span className="text-sm text-muted-foreground">{row.original.matric_number}</span>
+      cell: ({ row }) => {
+          const student = row.original;
+          const fullName = getFullName(student);
+          const initials = `${student.first_name[0]}${student.last_name[0]}`;
+          return (
+              <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                          {initials}
+                      </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                      <span className="font-medium">{fullName}</span>
+                      <span className="text-sm text-muted-foreground">{student.matric_number}</span>
+                  </div>
               </div>
-          </div>
-      )
+          )
+      },
+      accessorFn: (row) => `${row.first_name} ${row.last_name}`,
     },
     {
       accessorKey: 'email',

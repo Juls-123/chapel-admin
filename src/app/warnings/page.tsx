@@ -8,7 +8,7 @@ import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { warningLetterSummaries } from '@/lib/mock-data';
+import { warningLetterSummaries, students } from '@/lib/mock-data';
 import type { WarningLetterSummary } from '@/lib/types';
 import { WarningLettersTable } from './data-table';
 
@@ -27,6 +27,10 @@ export default function WarningLettersPage() {
     end.setDate(end.getDate() + 6);
     return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
   };
+
+  const getFirstName = (fullName: string) => {
+      return fullName.split(' ')[0];
+  }
 
   return (
     <AppShell>
@@ -61,7 +65,7 @@ export default function WarningLettersPage() {
                             <p className="mb-2"><strong>To:</strong> {selectedStudent.student_name}</p>
                             <p className="mb-4"><strong>Matric Number:</strong> {selectedStudent.matric_number}</p>
                             
-                            <p className="mb-4">Dear {selectedStudent.student_name.split(' ')[0]},</p>
+                            <p className="mb-4">Dear {getFirstName(selectedStudent.student_name)},</p>
                             
                             <p className="mb-4">This letter serves as a formal warning regarding your attendance at required chapel services. Our records indicate that you have missed <strong>{selectedStudent.miss_count}</strong> services for the week of <strong>{format(selectedStudent.week_start, 'PPP')}</strong>.</p>
                             

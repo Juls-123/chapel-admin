@@ -88,12 +88,14 @@ export function AbsenteesTable({ data }: { data: AttendanceRecord[] }) {
       cell: ({ row }) => {
         const record = row.original;
         const student = students.find(s => s.matric_number === record.matric_number);
-        const studentName = student ? student.full_name : 'Unknown Student';
+        const studentName = record.student_name || 'Unknown Student';
+        const initials = student ? `${student.first_name[0]}${student.last_name[0]}` : 'U';
+
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback>
-                {studentName.split(" ").map(n => n[0]).join("")}
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">

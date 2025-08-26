@@ -38,7 +38,9 @@ import type { Student } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const studentFormSchema = z.object({
-  fullName: z.string().min(1, 'Full name is required.'),
+  firstName: z.string().min(1, 'First name is required.'),
+  middleName: z.string().min(1, 'Middle name is required.'),
+  lastName: z.string().min(1, 'Last name is required.'),
   matricNumber: z.string().min(1, 'Matriculation number is required.'),
   email: z.string().email('Invalid email address.'),
   level: z.coerce.number().min(100).max(500),
@@ -49,7 +51,7 @@ type StudentFormValues = z.infer<typeof studentFormSchema>;
 
 interface ParsedStudent {
   matricNumber: string;
-  fullName: string;
+  fullName: string; // Keep for preview, can be constructed
   email: string;
   level: number;
   parents_phone_number: string;
@@ -93,7 +95,7 @@ export default function StudentManagementPage() {
         console.log("Creating student:", data);
         toast({
             title: "Student Added",
-            description: `${data.fullName} has been successfully registered.`,
+            description: `${data.firstName} ${data.lastName} has been successfully registered.`,
         });
         setOpen(false);
         form.reset();
@@ -129,19 +131,47 @@ export default function StudentManagementPage() {
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onIndividualSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="fullName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Full Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. John Doe" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <FormField
+                                control={form.control}
+                                name="firstName"
+                                render={({ field }) => (
+                                    <FormItem className="sm:col-span-1">
+                                        <FormLabel>First Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. John" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="middleName"
+                                render={({ field }) => (
+                                    <FormItem className="sm:col-span-1">
+                                        <FormLabel>Middle Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. Chukwudi" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="lastName"
+                                render={({ field }) => (
+                                    <FormItem className="sm:col-span-1">
+                                        <FormLabel>Last Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. Doe" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <FormField
                             control={form.control}
                             name="matricNumber"

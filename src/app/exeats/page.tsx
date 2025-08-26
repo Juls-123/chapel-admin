@@ -48,6 +48,7 @@ import { exeats, students } from '@/lib/mock-data';
 import { ExeatTable } from './data-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import type { Student } from '@/lib/types';
 
 const exeatFormSchema = z.object({
   matricNumber: z.string({ required_error: 'Please select a student.' }),
@@ -60,6 +61,8 @@ const exeatFormSchema = z.object({
 });
 
 type ExeatFormValues = z.infer<typeof exeatFormSchema>;
+
+const getFullName = (student: Student) => `${student.first_name} ${student.middle_name} ${student.last_name}`;
 
 export default function ExeatManagerPage() {
   const [open, setOpen] = useState(false);
@@ -120,9 +123,9 @@ export default function ExeatManagerPage() {
                               )}
                             >
                               {field.value
-                                ? students.find(
+                                ? getFullName(students.find(
                                     (student) => student.matric_number === field.value
-                                  )?.full_name
+                                  )!)
                                 : "Select student"}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -136,7 +139,7 @@ export default function ExeatManagerPage() {
                               <CommandGroup>
                                 {students.map((student) => (
                                   <CommandItem
-                                    value={student.full_name}
+                                    value={getFullName(student)}
                                     key={student.id}
                                     onSelect={() => {
                                       form.setValue("matricNumber", student.matric_number);
@@ -152,7 +155,7 @@ export default function ExeatManagerPage() {
                                       )}
                                     />
                                     <div>
-                                      <p>{student.full_name}</p>
+                                      <p>{getFullName(student)}</p>
                                       <p className="text-xs text-muted-foreground">{student.matric_number}</p>
                                     </div>
                                   </CommandItem>
