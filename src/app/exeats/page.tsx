@@ -50,7 +50,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const exeatFormSchema = z.object({
-  matricNumber: z.string({ required_error: 'Please enter a matriculation number.' }).min(1, 'Matriculation number is required.'),
+  matricNumber: z.string({ required_error: 'Please select a student.' }),
   startDate: z.date({ required_error: 'A start date is required.' }),
   endDate: z.date({ required_error: 'An end date is required.' }),
   reason: z.string().optional(),
@@ -63,6 +63,7 @@ type ExeatFormValues = z.infer<typeof exeatFormSchema>;
 
 export default function ExeatManagerPage() {
   const [open, setOpen] = useState(false);
+  const [comboboxOpen, setComboboxOpen] = useState(false);
   const { toast } = useToast();
   
   const form = useForm<ExeatFormValues>({
@@ -105,11 +106,62 @@ export default function ExeatManagerPage() {
                   control={form.control}
                   name="matricNumber"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Matric Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. STU-001" {...field} />
-                      </FormControl>
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Student</FormLabel>
+                      <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? students.find(
+                                    (student) => student.matric_number === field.value
+                                  )?.full_name
+                                : "Select student"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[375px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search student..." />
+                            <CommandList>
+                              <CommandEmpty>No student found.</CommandEmpty>
+                              <CommandGroup>
+                                {students.map((student) => (
+                                  <CommandItem
+                                    value={student.full_name}
+                                    key={student.id}
+                                    onSelect={() => {
+                                      form.setValue("matricNumber", student.matric_number);
+                                      setComboboxOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        student.matric_number === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    <div>
+                                      <p>{student.full_name}</p>
+                                      <p className="text-xs text-muted-foreground">{student.matric_number}</p>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
