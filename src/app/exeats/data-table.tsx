@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -144,10 +145,6 @@ export function ExeatTable({ data }: { data: Exeat[] }) {
                       <DropdownMenuItem>Edit Exeat</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleViewProfile(row.original.matric_number)}>
                         View Student Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                      Revoke Exeat
                       </DropdownMenuItem>
                   </DropdownMenuContent>
                   </DropdownMenu>
