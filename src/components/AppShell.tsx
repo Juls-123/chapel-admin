@@ -76,10 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     icon={<item.icon />}
                     tooltip={{ children: item.label, side: 'right' }}
                   >
-                    <div className='flex items-center gap-3'>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </div>
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
