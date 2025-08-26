@@ -137,25 +137,25 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="grid gap-2">
               <Link href="/services">
-                <Button className="w-full">
+                <Button className="w-full justify-start">
                   <PlusCircle />
                   Create Service
                 </Button>
               </Link>
               <Link href="/exeats">
-                <Button variant="secondary" className="w-full">
+                <Button variant="secondary" className="w-full justify-start">
                   <Users />
                   Add Exeat
                 </Button>
               </Link>
               <Link href="/attendance">
-                <Button variant="secondary" className="w-full">
+                <Button variant="secondary" className="w-full justify-start">
                   <FileUp />
                   Upload Attendance
                 </Button>
               </Link>
               <Link href="/absentees">
-                <Button variant="secondary" className="w-full">
+                <Button variant="secondary" className="w-full justify-start">
                   <UserX />
                   Review Absentees
                 </Button>
