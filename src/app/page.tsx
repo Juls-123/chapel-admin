@@ -10,6 +10,7 @@ import {
   UserX,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -134,22 +135,30 @@ export default function DashboardPage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
-              <Button>
-                <PlusCircle />
-                Create Service
-              </Button>
-              <Button variant="secondary">
-                <Users />
-                Add Exeat
-              </Button>
-              <Button variant="secondary">
-                <FileUp />
-                Upload Attendance
-              </Button>
-              <Button variant="secondary">
-                <UserX />
-                Review Absentees
-              </Button>
+              <Link href="/services">
+                <Button className="w-full">
+                  <PlusCircle />
+                  Create Service
+                </Button>
+              </Link>
+              <Link href="/exeats">
+                <Button variant="secondary" className="w-full">
+                  <Users />
+                  Add Exeat
+                </Button>
+              </Link>
+              <Link href="/attendance">
+                <Button variant="secondary" className="w-full">
+                  <FileUp />
+                  Upload Attendance
+                </Button>
+              </Link>
+              <Link href="/absentees">
+                <Button variant="secondary" className="w-full">
+                  <UserX />
+                  Review Absentees
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
