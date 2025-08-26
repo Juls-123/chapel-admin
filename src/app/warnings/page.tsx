@@ -59,7 +59,7 @@ export default function WarningLettersPage() {
                             <h2 className="text-xl font-bold mb-4 text-center">Chapel Attendance Warning</h2>
                             <p className="mb-2"><strong>Date:</strong> {format(new Date(), 'PPP')}</p>
                             <p className="mb-2"><strong>To:</strong> {selectedStudent.student_name}</p>
-                            <p className="mb-4"><strong>Student ID:</strong> {selectedStudent.student_id}</p>
+                            <p className="mb-4"><strong>Matric Number:</strong> {selectedStudent.matric_number}</p>
                             
                             <p className="mb-4">Dear {selectedStudent.student_name.split(' ')[0]},</p>
                             

@@ -1,6 +1,6 @@
 export interface Student {
   id: string;
-  student_number: string;
+  matric_number: string;
   full_name: string;
   email: string;
 }
@@ -17,7 +17,7 @@ export interface Service {
 
 export interface Exeat {
   id: string;
-  student_id: string;
+  matric_number: string;
   student_name: string;
   start_date: Date;
   end_date: Date;
@@ -29,7 +29,7 @@ export interface Exeat {
 
 export interface ManualClear {
   id: string;
-  student_id: string;
+  matric_number: string;
   service_id: string;
   cleared_by: string;
   reason: string;
@@ -38,7 +38,7 @@ export interface ManualClear {
 
 export interface AttendanceRecord {
   id: string;
-  student_id: string;
+  matric_number: string;
   student_name: string;
   service_id: string;
   service_name: string;
@@ -48,7 +48,7 @@ export interface AttendanceRecord {
 }
 
 export interface WarningLetterSummary {
-  student_id: string;
+  matric_number: string;
   student_name: string;
   week_start: Date;
   miss_count: number;

@@ -55,7 +55,7 @@ const columns: ColumnDef<WarningLetterSummary>[] = [
                     </Avatar>
                     <div className="flex flex-col">
                         <span className="font-medium">{summary.student_name}</span>
-                        <span className="text-sm text-muted-foreground">{summary.student_id}</span>
+                        <span className="text-sm text-muted-foreground">{summary.matric_number}</span>
                     </div>
                 </div>
             )
@@ -117,11 +117,11 @@ const columns: ColumnDef<WarningLetterSummary>[] = [
 
 export function WarningLettersTable({ data, onRowSelect }: WarningLettersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedRowId, setSelectedRowId] = useState<string | null>(data.length > 0 ? data[0].student_id : null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(data.length > 0 ? data[0].matric_number : null);
 
   const handleRowClick = (row: any) => {
     const student = row.original as WarningLetterSummary;
-    setSelectedRowId(student.student_id);
+    setSelectedRowId(student.matric_number);
     onRowSelect(student);
   };
   
@@ -163,7 +163,7 @@ export function WarningLettersTable({ data, onRowSelect }: WarningLettersTablePr
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={selectedRowId === (row.original as WarningLetterSummary).student_id && 'selected'}
+                    data-state={selectedRowId === (row.original as WarningLetterSummary).matric_number && 'selected'}
                     onClick={() => handleRowClick(row)}
                     className="cursor-pointer"
                   >

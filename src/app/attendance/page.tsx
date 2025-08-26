@@ -20,7 +20,7 @@ import type { Service } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface ParsedRecord {
-  studentId: string;
+  matricNumber: string;
   studentName: string;
   serviceId: string;
   serviceName: string;
@@ -68,7 +68,7 @@ export default function AttendanceUploadPage() {
     // Mock parsing logic
     const mockParsed: ParsedRecord[] = acceptedFiles.flatMap(f => 
       students.slice(0, 5).map((s, i) => ({
-        studentId: s.student_number,
+        matricNumber: s.matric_number,
         studentName: s.full_name,
         serviceId: service!.id,
         serviceName: service!.name || service!.type,
@@ -285,7 +285,7 @@ export default function AttendanceUploadPage() {
                           <div>
                             <p className="font-medium">{record.studentName}</p>
                             <p className="text-sm text-muted-foreground">
-                              ID: {record.studentId}
+                              Matric Number: {record.matricNumber}
                             </p>
                           </div>
                           {record.status === 'matched' ? (

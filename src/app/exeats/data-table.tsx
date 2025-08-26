@@ -60,7 +60,7 @@ const columns: ColumnDef<Exeat>[] = [
                 </Avatar>
                 <div className="flex flex-col">
                     <span className="font-medium">{row.original.student_name}</span>
-                    <span className="text-sm text-muted-foreground">{row.original.student_id}</span>
+                    <span className="text-sm text-muted-foreground">{row.original.matric_number}</span>
                 </div>
             </div>
         )
@@ -161,7 +161,7 @@ export function ExeatTable({ data }: { data: Exeat[] }) {
     <Card className="shadow-sm">
       <CardContent className="p-4">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2 md:flex-row">
+          <div className="flex flex-col gap-2 md:flex-row md:flex-wrap">
             <Input
               placeholder="Filter by student..."
               value={(table.getColumn('student_name')?.getFilterValue() as string) ?? ''}

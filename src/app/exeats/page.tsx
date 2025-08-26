@@ -49,7 +49,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const exeatFormSchema = z.object({
-  studentId: z.string({ required_error: 'Please enter a student ID.' }).min(1, 'Student ID is required.'),
+  matricNumber: z.string({ required_error: 'Please enter a matriculation number.' }).min(1, 'Matriculation number is required.'),
   startDate: z.date({ required_error: 'A start date is required.' }),
   endDate: z.date({ required_error: 'An end date is required.' }),
   reason: z.string().optional(),
@@ -91,7 +91,7 @@ export default function ExeatManagerPage() {
               Add Exeat
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Add New Exeat</DialogTitle>
               <DialogDescription>
@@ -102,12 +102,12 @@ export default function ExeatManagerPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="studentId"
+                  name="matricNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Student ID</FormLabel>
+                      <FormLabel>Matric Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. S001" {...field} />
+                        <Input placeholder="e.g. STU-001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

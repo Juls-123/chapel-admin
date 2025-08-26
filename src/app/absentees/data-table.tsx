@@ -77,7 +77,7 @@ const columns: ColumnDef<AttendanceRecord>[] = [
           </Avatar>
           <div className="flex flex-col">
             <span className="font-medium">{record.student_name}</span>
-            <span className="text-sm text-muted-foreground">{record.student_id}</span>
+            <span className="text-sm text-muted-foreground">{record.matric_number}</span>
           </div>
         </div>
       );

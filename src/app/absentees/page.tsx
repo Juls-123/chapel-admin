@@ -7,9 +7,9 @@ import { AbsenteesTable } from './data-table';
 import { Button } from '@/components/ui/button';
 
 export default function AbsenteesPage() {
-  const isStudentOnExeat = (studentId: string, serviceDate: Date) => {
+  const isStudentOnExeat = (matricNumber: string, serviceDate: Date) => {
     return exeats.some(exeat => 
-      exeat.student_id === studentId &&
+      exeat.matric_number === matricNumber &&
       serviceDate >= new Date(exeat.start_date) &&
       serviceDate <= new Date(exeat.end_date)
     );
@@ -23,7 +23,7 @@ export default function AbsenteesPage() {
   const absentees = attendanceRecords.filter(r => 
     r.status === 'absent' && 
     r.service_id === selectedService.id &&
-    !isStudentOnExeat(r.student_id, serviceDate)
+    !isStudentOnExeat(r.matric_number, serviceDate)
   );
 
   return (

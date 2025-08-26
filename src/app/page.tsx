@@ -37,7 +37,7 @@ import type { Service, AttendanceRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface AbsenteeSummary {
-    student_id: string;
+    matric_number: string;
     student_name: string;
     absences: number;
 }
@@ -51,14 +51,14 @@ export default function DashboardPage() {
   const absenteeCounts = attendanceRecords
     .filter(record => record.status === 'absent')
     .reduce((acc, record) => {
-        acc[record.student_id] = (acc[record.student_id] || 0) + 1;
+        acc[record.matric_number] = (acc[record.matric_number] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
 
   const topAbsentees: AbsenteeSummary[] = Object.entries(absenteeCounts)
-    .map(([student_id, absences]) => ({
-        student_id,
-        student_name: students.find(s => s.id === student_id)?.full_name || 'Unknown Student',
+    .map(([matric_number, absences]) => ({
+        matric_number,
+        student_name: students.find(s => s.matric_number === matric_number)?.full_name || 'Unknown Student',
         absences,
     }))
     .sort((a, b) => b.absences - a.absences)
@@ -197,13 +197,13 @@ export default function DashboardPage() {
             <CardContent>
                 <div className="space-y-4">
                     {topAbsentees.map(student => (
-                        <div key={student.student_id} className="flex items-center">
+                        <div key={student.matric_number} className="flex items-center">
                             <Avatar className="h-9 w-9">
                                 <AvatarFallback>{student.student_name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                             </Avatar>
                             <div className="ml-4 space-y-1">
                                 <p className="text-sm font-medium leading-none">{student.student_name}</p>
-                                <p className="text-sm text-muted-foreground">{student.student_id}</p>
+                                <p className="text-sm text-muted-foreground">{student.matric_number}</p>
                             </div>
                             <div className="ml-auto font-medium">{student.absences} absences</div>
                         </div>
@@ -246,7 +246,7 @@ function ServiceCard({ service }: { service: Service }) {
       <CardContent>
         <div className="flex -space-x-2 overflow-hidden">
           {students.slice(0, 5).map((student) => (
-            <Avatar key={student.id} className="border-2 border-background">
+            <Avatar key={student.matric_number} className="border-2 border-background">
               <AvatarImage src={`https://placehold.co/40x40.png`} data-ai-hint="student portrait" />
               <AvatarFallback>
                 {student.full_name
