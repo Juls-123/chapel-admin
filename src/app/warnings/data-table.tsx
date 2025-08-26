@@ -53,12 +53,14 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
   const { toast } = useToast();
 
   useEffect(() => {
-    if (data.length > 0 && !data.find(d => d.matric_number === selectedRowId)) {
-        const newSelectedId = data[0].matric_number;
-        setSelectedRowId(newSelectedId);
-        onRowSelect(data[0]);
+    if (data.length > 0 && !selectedRowId) {
+      const newSelectedId = data[0].matric_number;
+      setSelectedRowId(newSelectedId);
+      onRowSelect(data[0]);
     } else if (data.length === 0) {
-        setSelectedRowId(null);
+      setSelectedRowId(null);
+      // It's better to inform parent component that nothing is selected
+      // onRowSelect(null);
     }
   }, [data, selectedRowId, onRowSelect]);
 
@@ -161,7 +163,7 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
                   <div className="text-right">
                       <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                           </Button>
