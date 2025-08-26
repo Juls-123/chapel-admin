@@ -142,7 +142,6 @@ export function ExeatTable({ data }: { data: Exeat[] }) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit Exeat</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleViewProfile(row.original.matric_number)}>
                         View Student Profile
                       </DropdownMenuItem>
