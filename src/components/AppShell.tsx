@@ -9,6 +9,7 @@ import {
   UserX,
   MailWarning,
   ChevronRight,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -75,7 +76,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                     icon={<item.icon />}
                     tooltip={{ children: item.label, side: 'right' }}
                   >
-                    {item.label}
+                    <div className='flex items-center gap-3'>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </div>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
@@ -84,21 +88,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarContent>
         <SidebarFooter>
           <Separator className="my-2" />
-          <div className="flex items-center justify-between p-2">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="admin user" />
-                <AvatarFallback>A</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col text-sm">
-                <span className="font-semibold">Admin User</span>
-                <span className="text-muted-foreground">admin@chapel.co</span>
-              </div>
+          <Link href="/profile">
+            <div className="flex items-center justify-between p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer">
+                <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="admin user" />
+                    <AvatarFallback>A</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col text-sm">
+                    <span className="font-semibold">Admin User</span>
+                    <span className="text-muted-foreground">admin@chapel.co</span>
+                </div>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                <ChevronRight className="h-4 w-4" />
+                </Button>
             </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          </Link>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
