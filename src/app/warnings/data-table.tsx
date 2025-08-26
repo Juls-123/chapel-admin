@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -47,10 +47,20 @@ type WarningLettersTableProps = {
 
 export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: WarningLettersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedRowId, setSelectedRowId] = useState<string | null>(data.length > 0 ? data[0].matric_number : null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithRecords | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (data.length > 0 && !data.find(d => d.matric_number === selectedRowId)) {
+        const newSelectedId = data[0].matric_number;
+        setSelectedRowId(newSelectedId);
+        onRowSelect(data[0]);
+    } else if (data.length === 0) {
+        setSelectedRowId(null);
+    }
+  }, [data, selectedRowId, onRowSelect]);
 
   const getInitials = (studentName: string) => {
     const names = studentName.split(" ");
@@ -158,13 +168,13 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleResend(summary)} disabled={summary.status === 'sent' || summary.status === 'overridden'}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleResend(summary) }} disabled={summary.status === 'sent' || summary.status === 'overridden'}>
                             Resend Letter
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleOverride(summary)} disabled={summary.status === 'overridden'}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOverride(summary) }} disabled={summary.status === 'overridden'}>
                             Override Warning
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewProfile(row.original.matric_number)}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewProfile(row.original.matric_number) }}>
                             View History
                           </DropdownMenuItem>
                       </DropdownMenuContent>
