@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -86,15 +87,17 @@ export function AbsenteesTable({ data }: { data: AttendanceRecord[] }) {
       header: 'Student',
       cell: ({ row }) => {
         const record = row.original;
+        const student = students.find(s => s.matric_number === record.matric_number);
+        const studentName = student ? student.full_name : 'Unknown Student';
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback>
-                {record.student_name.split(" ").map(n => n[0]).join("")}
+                {studentName.split(" ").map(n => n[0]).join("")}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="font-medium">{record.student_name}</span>
+              <span className="font-medium">{studentName}</span>
               <span className="text-sm text-muted-foreground">{record.matric_number}</span>
             </div>
           </div>
@@ -170,6 +173,11 @@ export function AbsenteesTable({ data }: { data: AttendanceRecord[] }) {
       columnFilters,
       rowSelection,
     },
+    initialState: {
+        pagination: {
+            pageSize: 5
+        }
+    }
   });
 
   return (
