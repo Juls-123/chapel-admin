@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { format } from 'date-fns';
 
 import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -246,10 +247,7 @@ function ServiceCard({ service }: { service: Service }) {
             </Badge>
         </div>
         <CardDescription>
-          {new Date(service.date).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {format(new Date(service.date), 'p')}
         </CardDescription>
       </CardHeader>
       <CardContent>
