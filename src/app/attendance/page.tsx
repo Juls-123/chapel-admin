@@ -2,11 +2,12 @@
 "use client";
 
 import { useState } from 'react';
-import { UploadCloud, File, X, CheckCircle, ChevronsUpDown, Check } from 'lucide-react';
+import { UploadCloud, File, X, CheckCircle, ChevronsUpDown, Check, CalendarIcon } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { format } from 'date-fns';
 
 import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -14,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { students, services } from '@/lib/mock-data';
 import type { Service, Student } from '@/lib/types';
@@ -39,17 +41,19 @@ const getFullName = (student: Student) => `${student.first_name} ${student.middl
 export default function AttendanceUploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [parsedData, setParsedData] = useState<ParsedRecord[]>([]);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [open, setOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
+  
   const { toast } = useToast();
 
   const form = useForm<AttendanceUploadFormValues>({
     resolver: zodResolver(attendanceUploadSchema),
   });
 
+  const selectedService = services.find(s => s.id === selectedServiceId);
+
   const onDrop = (acceptedFiles: File[]) => {
-    const serviceId = form.getValues('serviceId');
-    if (!serviceId) {
+    if (!selectedServiceId) {
         toast({
             title: 'No Service Selected',
             description: 'Please select a service before uploading a file.',
@@ -57,7 +61,7 @@ export default function AttendanceUploadPage() {
         });
         return;
     }
-    const service = services.find(s => s.id === serviceId);
+    const service = services.find(s => s.id === selectedServiceId);
     if (service?.status === 'cancelled') {
         toast({
             title: 'Service Cancelled',
@@ -84,7 +88,7 @@ export default function AttendanceUploadPage() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
       onDrop, 
       accept: {'text/csv': ['.csv'], 'application/json': ['.json']},
-      disabled: !selectedService || selectedService.status === 'cancelled'
+      disabled: !selectedServiceId || selectedService?.status === 'cancelled'
   });
   
   const removeFile = (fileToRemove: File) => {
@@ -94,26 +98,30 @@ export default function AttendanceUploadPage() {
     }
   }
 
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedServiceId(undefined);
+    form.reset({ serviceId: undefined });
+  }
+
   const handleServiceChange = (serviceId: string) => {
     const service = services.find(s => s.id === serviceId);
-    if (service) {
-      if(service.status === 'cancelled') {
+    setSelectedServiceId(serviceId);
+    form.setValue('serviceId', serviceId);
+    if (service?.status === 'cancelled') {
         toast({
-          title: 'Service Cancelled',
-          description: 'This service has been cancelled. You cannot upload attendance for it.',
-          variant: 'destructive'
+            title: 'Service Cancelled',
+            description: 'You cannot upload attendance for a cancelled service.',
+            variant: 'destructive',
         });
-        setSelectedService(service);
-      } else {
-        setSelectedService(service);
-      }
-      form.setValue('serviceId', serviceId);
-      // If a file is already uploaded, re-parse with new service context
-      if(files.length > 0) {
-        onDrop(files);
-      }
+    }
+    // If a file is already uploaded, re-parse with new service context
+    if(files.length > 0) {
+      onDrop(files);
     }
   };
+  
+  const servicesOnDate = selectedDate ? services.filter(service => new Date(service.date).toDateString() === selectedDate.toDateString()) : [];
 
   const onSubmit = () => {
     if(!selectedService) {
@@ -134,7 +142,7 @@ export default function AttendanceUploadPage() {
     });
     setFiles([]);
     setParsedData([]);
-    setSelectedService(null);
+    setSelectedServiceId(undefined);
     form.reset();
   }
 
@@ -151,8 +159,33 @@ export default function AttendanceUploadPage() {
                 <CardTitle>1. Select Service</CardTitle>
                 <CardDescription>Choose the service for this attendance batch.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Form {...form}>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <FormLabel>Date</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={handleDateChange}
+                                initialFocus
+                            />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <Form {...form}>
                         <form>
                             <FormField
                                 control={form.control}
@@ -160,56 +193,29 @@ export default function AttendanceUploadPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Service</FormLabel>
-                                        <Popover open={open} onOpenChange={setOpen}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        className={cn(
-                                                            "w-full justify-between",
-                                                            !field.value && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        {selectedService 
-                                                            ? `${selectedService.name || selectedService.type.charAt(0).toUpperCase() + selectedService.type.slice(1)} - ${new Date(selectedService.date).toLocaleDateString()}` 
-                                                            : "Select a service"}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-full p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search service..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No service found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {services.map((service) => (
-                                                                <CommandItem
-                                                                    value={service.id}
-                                                                    key={service.id}
-                                                                    onSelect={() => {
-                                                                        handleServiceChange(service.id);
-                                                                        setOpen(false);
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "mr-2 h-4 w-4",
-                                                                            service.id === field.value ? "opacity-100" : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                    <span>
-                                                                        {service.name || service.type.charAt(0).toUpperCase() + service.type.slice(1)} ({new Date(service.date).toLocaleDateString()})
-                                                                        {service.status === 'cancelled' && <span className="text-destructive ml-2">(Cancelled)</span>}
-                                                                    </span>
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                        <Select 
+                                            onValueChange={handleServiceChange} 
+                                            value={field.value} 
+                                            disabled={!selectedDate || servicesOnDate.length === 0}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a service" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {servicesOnDate.length > 0 ? (
+                                                    servicesOnDate.map(service => (
+                                                        <SelectItem key={service.id} value={service.id} disabled={service.status === 'cancelled'}>
+                                                            {service.name || `${service.type.charAt(0).toUpperCase() + service.type.slice(1)} Service`}
+                                                            {service.status === 'cancelled' && <span className="text-destructive ml-2"> (Cancelled)</span>}
+                                                        </SelectItem>
+                                                    ))
+                                                ) : (
+                                                    <SelectItem value="none" disabled>No services on this date</SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -230,15 +236,15 @@ export default function AttendanceUploadPage() {
                     className={cn(
                     'flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors',
                     isDragActive ? 'border-primary bg-primary/10' : 'border-muted',
-                    !selectedService || selectedService.status === 'cancelled' ? 'cursor-not-allowed bg-muted/50' : 'hover:border-primary/50'
+                    !selectedServiceId || selectedService?.status === 'cancelled' ? 'cursor-not-allowed bg-muted/50' : 'hover:border-primary/50'
                     )}
                 >
                     <input {...getInputProps()} />
                     <UploadCloud className="h-12 w-12 text-muted-foreground" />
                     <p className="mt-4 text-center text-muted-foreground">
-                    {!selectedService 
+                    {!selectedServiceId 
                         ? 'Please select a service first' 
-                        : selectedService.status === 'cancelled' 
+                        : selectedService?.status === 'cancelled' 
                         ? 'Cannot upload to a cancelled service' 
                         : isDragActive 
                         ? 'Drop the files here...' 
@@ -317,7 +323,7 @@ export default function AttendanceUploadPage() {
                       <File className="size-8 text-muted-foreground" />
                     </div>
                     <p className="text-muted-foreground">
-                        { !selectedService ? "Select a service and upload a file to see the preview." : "Upload a file to see the preview."}
+                        { !selectedServiceId ? "Select a service and upload a file to see the preview." : "Upload a file to see the preview."}
                     </p>
                 </div>
               )}

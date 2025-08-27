@@ -25,20 +25,28 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
               <AvatarImage src="https://placehold.co/80x80.png" data-ai-hint="admin user" />
-              <AvatarFallback>A</AvatarFallback>
+              <AvatarFallback>AU</AvatarFallback>
             </Avatar>
             <Button variant="outline">Change Photo</Button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" defaultValue="Admin User" readOnly />
+              <Label htmlFor="firstName">First Name</Label>
+              <Input id="firstName" defaultValue="Admin" readOnly />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="middleName">Middle Name</Label>
+              <Input id="middleName" defaultValue="Istrator" readOnly />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input id="lastName" defaultValue="User" readOnly />
+            </div>
+          </div>
+           <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" defaultValue="admin@chapel.co" readOnly />
             </div>
-          </div>
            <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Input id="role" defaultValue="Super Administrator" readOnly />
