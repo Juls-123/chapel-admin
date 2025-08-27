@@ -59,7 +59,7 @@ export interface WarningLetterSummary {
   week_start: Date;
   miss_count: number;
   missed_service_dates: Date[];
-  status: 'pending' | 'sent' | 'failed' | 'overridden';
+  status: 'pending' | 'sent' | 'failed';
 }
 
 export interface RecentAction {

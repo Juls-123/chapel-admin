@@ -95,14 +95,6 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
     })
   }
 
-  const handleOverride = (summary: WarningLetterSummary) => {
-    onUpdateStatus(summary.matric_number, 'overridden');
-    toast({
-        title: "Warning Overridden",
-        description: `Warning for ${summary.student_name} has been overridden.`
-    })
-  }
-
   const columns: ColumnDef<WarningLetterSummary>[] = [
       {
           accessorKey: 'student_name',
@@ -146,7 +138,6 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
                   pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300" },
                   sent: { label: "Sent", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" },
                   failed: { label: "Failed", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" },
-                  overridden: { label: "Overridden", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300" },
               }
               return (
                   <Badge variant="outline" className={cn("border-0 capitalize", statusConfig[status].color)}>
@@ -170,11 +161,8 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleResend(summary) }} disabled={summary.status === 'sent' || summary.status === 'overridden'}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleResend(summary) }} disabled={summary.status === 'sent'}>
                             Resend Letter
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOverride(summary) }} disabled={summary.status === 'overridden'}>
-                            Override Warning
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewProfile(row.original.matric_number) }}>
                             View History

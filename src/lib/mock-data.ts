@@ -49,7 +49,7 @@ export const warningLetterSummaries: WarningLetterSummary[] = [
   { matric_number: 'STU-002', student_name: getFullName(students[1]), week_start: new Date(new Date().setDate(new Date().getDate() - 7)), miss_count: 3, missed_service_dates: [new Date(new Date().setDate(new Date().getDate() - 6)), new Date(new Date().setDate(new Date().getDate() - 4))], status: 'pending' },
   { matric_number: 'STU-004', student_name: getFullName(students[3]), week_start: new Date(new Date().setDate(new Date().getDate() - 7)), miss_count: 2, missed_service_dates: [new Date(new Date().setDate(new Date().getDate() - 5))], status: 'sent' },
   { matric_number: 'STU-006', student_name: getFullName(students[5]), week_start: new Date(new Date().setDate(new Date().getDate() - 14)), miss_count: 4, missed_service_dates: [new Date(new Date().setDate(new Date().getDate() - 12))], status: 'failed' },
-  { matric_number: 'STU-001', student_name: getFullName(students[0]), week_start: new Date(new Date().setDate(new Date().getDate() - 7)), miss_count: 2, missed_service_dates: [new Date(new Date().setDate(new Date().getDate() - 3))], status: 'overridden' },
+  { matric_number: 'STU-001', student_name: getFullName(students[0]), week_start: new Date(new Date().setDate(new Date().getDate() - 7)), miss_count: 2, missed_service_dates: [new Date(new Date().setDate(new Date().getDate() - 3))], status: 'pending' },
 ];
 
 export const recentActions: RecentAction[] = [

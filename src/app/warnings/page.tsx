@@ -51,7 +51,7 @@ export default function WarningLettersPage() {
   const handleSendAll = () => {
     const pendingCount = warnings.filter(w => w.status === 'pending' || w.status === 'failed').length;
     if(pendingCount === 0) {
-        toast({ title: 'No letters to send', description: 'All warnings have already been sent or overridden.' });
+        toast({ title: 'No letters to send', description: 'All warnings have already been sent.' });
         return;
     }
 
