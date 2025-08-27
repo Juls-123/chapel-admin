@@ -11,6 +11,7 @@ import {
   ChevronRight,
   User,
   Users,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -40,6 +41,7 @@ const navItems = [
   { href: '/attendance', label: 'Attendance Upload', icon: FileUp },
   { href: '/absentees', label: 'Absentees', icon: UserX },
   { href: '/warnings', label: 'Warning Letters', icon: MailWarning },
+  { href: '/admins', label: 'Admins', icon: Shield },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

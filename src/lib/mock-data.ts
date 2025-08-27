@@ -1,4 +1,4 @@
-import type { Student, Service, Exeat, ManualClear, AttendanceRecord, WarningLetterSummary, RecentAction } from './types';
+import type { Student, Service, Exeat, ManualClear, AttendanceRecord, WarningLetterSummary, RecentAction, Admin } from './types';
 
 export const students: Student[] = [
   { id: 'S001', matric_number: 'STU-001', first_name: 'Adewale', middle_name: 'Chukwuebuka', last_name: 'Adebayo', email: 'adewale.adebayo@mtu.edu.ng', parents_email: 'parent.adebayo@example.com', status: 'active', level: 400, parents_phone_number: '08012345671' },
@@ -58,3 +58,12 @@ export const recentActions: RecentAction[] = [
     { id: 'ACT003', admin_name: 'Admin C', action: 'Manually Cleared', target: getFullName(students[1]), description: "Cleared for Morning Service due to scanner issue.", date: new Date(new Date().setHours(new Date().getHours() - 5)) },
     { id: 'ACT004', admin_name: 'Admin B', action: 'Cancelled Service', target: 'Evening Prayer', description: "Cancelled due to university-wide power outage.", date: new Date(new Date().setDate(new Date().getDate() - 1)) },
 ];
+
+export const admins: Admin[] = [
+  { id: 'ADM001', first_name: 'Super', middle_name: 'Admin', last_name: 'User', email: 'super.admin@chapel.co', role: 'superadmin' },
+  { id: 'ADM002', first_name: 'Jane', middle_name: 'Ima', last_name: 'Smith', email: 'jane.smith@chapel.co', role: 'admin' },
+  { id: 'ADM003', first_name: 'John', middle_name: 'Ade', last_name: 'Doe', email: 'john.doe@chapel.co', role: 'admin' },
+];
+
+// This simulates the currently logged-in user.
+export const currentAdmin: Admin = admins[0]; // Currently logged in as a superadmin
