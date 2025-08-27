@@ -53,8 +53,8 @@ export const warningLetterSummaries: WarningLetterSummary[] = [
 ];
 
 export const recentActions: RecentAction[] = [
-    { id: 'ACT001', admin_name: 'Admin B', action: 'Approved Exeat for', target: getFullName(students[2]), date: new Date(new Date().setHours(new Date().getHours() - 1)) },
-    { id: 'ACT002', admin_name: 'Admin A', action: 'Created Service', target: 'Founder\'s Day', date: new Date(new Date().setHours(new Date().getHours() - 3)) },
-    { id: 'ACT003', admin_name: 'Admin C', action: 'Manually Cleared', target: getFullName(students[1]), date: new Date(new Date().setHours(new Date().getHours() - 5)) },
-    { id: 'ACT004', admin_name: 'Admin B', action: 'Cancelled Service', target: 'Evening Prayer', date: new Date(new Date().setDate(new Date().getDate() - 1)) },
+    { id: 'ACT001', admin_name: 'Admin B', action: 'Approved Exeat for', target: getFullName(students[2]), description: "Approved for 'Family event'", date: new Date(new Date().setHours(new Date().getHours() - 1)) },
+    { id: 'ACT002', admin_name: 'Admin A', action: 'Created Service', target: 'Founder\'s Day', description: "Scheduled for upcoming special event.", date: new Date(new Date().setHours(new Date().getHours() - 3)) },
+    { id: 'ACT003', admin_name: 'Admin C', action: 'Manually Cleared', target: getFullName(students[1]), description: "Cleared for Morning Service due to scanner issue.", date: new Date(new Date().setHours(new Date().getHours() - 5)) },
+    { id: 'ACT004', admin_name: 'Admin B', action: 'Cancelled Service', target: 'Evening Prayer', description: "Cancelled due to university-wide power outage.", date: new Date(new Date().setDate(new Date().getDate() - 1)) },
 ];

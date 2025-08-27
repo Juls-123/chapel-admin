@@ -194,8 +194,13 @@ export default function DashboardPage() {
                         {action.admin_name}
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">{action.action}</span>{' '}
-                        <span className="text-muted-foreground">{action.target}</span>
+                        <div>
+                          <span className="font-medium">{action.action}</span>{' '}
+                          <span className="text-muted-foreground">{action.target}</span>
+                        </div>
+                        {action.description && (
+                          <p className="text-sm text-muted-foreground">{action.description}</p>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {new Date(action.date).toLocaleDateString()}

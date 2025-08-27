@@ -67,6 +67,7 @@ export interface RecentAction {
   admin_name: string;
   action: string;
   target: string;
+  description?: string;
   date: Date;
 }
 
