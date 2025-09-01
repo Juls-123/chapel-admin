@@ -344,5 +344,4 @@ export default function AttendanceUploadPage() {
       </div>
     </AppShell>
   );
-
-    
+}
