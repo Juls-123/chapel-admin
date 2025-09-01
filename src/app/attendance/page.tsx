@@ -32,6 +32,7 @@ interface ParsedRecord {
 
 const attendanceUploadSchema = z.object({
     serviceId: z.string({ required_error: 'Please select a service.' }),
+    date: z.date(),
 });
 
 type AttendanceUploadFormValues = z.infer<typeof attendanceUploadSchema>;
@@ -41,15 +42,17 @@ const getFullName = (student: Student) => `${student.first_name} ${student.middl
 export default function AttendanceUploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [parsedData, setParsedData] = useState<ParsedRecord[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
-  
   const { toast } = useToast();
 
   const form = useForm<AttendanceUploadFormValues>({
     resolver: zodResolver(attendanceUploadSchema),
+    defaultValues: {
+      date: new Date(),
+    }
   });
 
+  const selectedDate = form.watch('date');
+  const selectedServiceId = form.watch('serviceId');
   const selectedService = services.find(s => s.id === selectedServiceId);
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -99,14 +102,14 @@ export default function AttendanceUploadPage() {
   }
 
   const handleDateChange = (date: Date | undefined) => {
-    setSelectedDate(date);
-    setSelectedServiceId(undefined);
-    form.reset({ serviceId: undefined });
+    if (date) {
+        form.setValue('date', date);
+        form.setValue('serviceId', '');
+    }
   }
 
   const handleServiceChange = (serviceId: string) => {
     const service = services.find(s => s.id === serviceId);
-    setSelectedServiceId(serviceId);
     form.setValue('serviceId', serviceId);
     if (service?.status === 'cancelled') {
         toast({
@@ -142,7 +145,6 @@ export default function AttendanceUploadPage() {
     });
     setFiles([]);
     setParsedData([]);
-    setSelectedServiceId(undefined);
     form.reset();
   }
 
@@ -154,39 +156,48 @@ export default function AttendanceUploadPage() {
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">
-            <Card className="shadow-sm">
-                <CardHeader>
-                <CardTitle>1. Select Service</CardTitle>
-                <CardDescription>Choose the service for this attendance batch.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
+            <Form {...form}>
+                <Card className="shadow-sm">
+                    <CardHeader>
+                    <CardTitle>1. Select Service</CardTitle>
+                    <CardDescription>Choose the service for this attendance batch.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <FormLabel>Date</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !selectedDate && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                                    </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={selectedDate}
-                                        onSelect={handleDateChange}
-                                        initialFocus
-                                    />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant={"outline"}
+                                                        className={cn(
+                                                        "w-full justify-start text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={handleDateChange}
+                                                initialFocus
+                                            />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={form.control}
                                 name="serviceId"
@@ -221,9 +232,9 @@ export default function AttendanceUploadPage() {
                                 )}
                             />
                         </div>
-                    </Form>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </Form>
 
             <Card className="shadow-sm">
                 <CardHeader>
@@ -333,4 +344,5 @@ export default function AttendanceUploadPage() {
       </div>
     </AppShell>
   );
-}
+
+    
