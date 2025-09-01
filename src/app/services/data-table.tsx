@@ -13,7 +13,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Calendar as CalendarIcon, Filter, Download } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Calendar as CalendarIcon, Download, CheckCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -44,14 +44,16 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import type { Service, AttendanceRecord } from '@/lib/types';
+import type { Service } from '@/lib/types';
 import { attendanceRecords } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 type ServiceTableProps = {
     data: Service[];
     onEdit: (service: Service) => void;
+    onStatusChange: (serviceId: string, status: Service['status']) => void;
 };
 
 const downloadCSV = (data: any[], filename: string) => {
@@ -86,9 +88,18 @@ const handleDownloadAttendance = (serviceId: string, serviceName: string) => {
     }
 };
 
-export function ServiceTable({ data, onEdit }: ServiceTableProps) {
+export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const { toast } = useToast();
+
+  const handleCompleteService = (service: Service) => {
+    onStatusChange(service.id, 'completed');
+    toast({
+      title: 'Service Completed',
+      description: `${service.name || service.type} has been marked as completed.`
+    })
+  }
 
   const columns: ColumnDef<Service>[] = [
     {
@@ -122,7 +133,7 @@ export function ServiceTable({ data, onEdit }: ServiceTableProps) {
         <div className="font-medium">
           {format(new Date(row.getValue('date')), 'PPP')}
           <div className="text-sm text-muted-foreground">
-            {format(new Date(row.getValue('date')), 'HH:mm')}
+            {format(new Date(row.getValue('date')), 'p')}
           </div>
         </div>
       ),
@@ -164,11 +175,12 @@ export function ServiceTable({ data, onEdit }: ServiceTableProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(service.id)}>
-                  Copy Service ID
+                  <DropdownMenuItem onClick={() => onEdit(service)}>Edit Service</DropdownMenuItem>
+                   <DropdownMenuItem onClick={() => handleCompleteService(service)} disabled={service.status !== 'active'}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Complete Service
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onEdit(service)}>Edit Service</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleDownloadAttendance(service.id, service.name || service.type)}>
                     <Download className="mr-2 h-4 w-4" />
                     Export Attendance

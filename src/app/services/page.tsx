@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { services } from '@/lib/mock-data';
+import { services as initialServices } from '@/lib/mock-data';
 import { ServiceTable } from './data-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +56,7 @@ const serviceFormSchema = z.object({
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
 
 export default function ServiceManagementPage() {
+    const [services, setServices] = useState<Service[]>(initialServices);
     const [open, setOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
     const { toast } = useToast();
@@ -112,8 +113,17 @@ export default function ServiceManagementPage() {
     
     const handleCreate = () => {
         setEditingService(null);
+        form.reset({ type: 'morning', name: '', date: undefined });
         setOpen(true);
     }
+
+    const handleStatusChange = (serviceId: string, status: Service['status']) => {
+        setServices(prevServices => 
+            prevServices.map(service => 
+                service.id === serviceId ? { ...service, status } : service
+            )
+        );
+    };
 
   return (
     <AppShell>
@@ -148,7 +158,7 @@ export default function ServiceManagementPage() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Service Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select a service type" />
@@ -241,7 +251,7 @@ export default function ServiceManagementPage() {
         </Dialog>
 
       <div className="grid gap-6">
-        <ServiceTable data={services} onEdit={handleEdit} />
+        <ServiceTable data={services} onEdit={handleEdit} onStatusChange={handleStatusChange} />
       </div>
     </AppShell>
   );
