@@ -1,4 +1,4 @@
-import type { Student, Service, Exeat, ManualClear, AttendanceRecord, WarningLetterSummary, RecentAction, Admin } from './types';
+import type { Student, Service, Exeat, ManualClear, AttendanceRecord, WarningLetterSummary, RecentAction, Admin, ManualClearReason, ServiceConstraint } from './types';
 
 export const students: Student[] = [
   { id: 'S001', matric_number: 'STU-001', first_name: 'Adewale', middle_name: 'Chukwuebuka', last_name: 'Adebayo', email: 'adewale.adebayo@mtu.edu.ng', parents_email: 'parent.adebayo@example.com', status: 'active', level: 400, parents_phone_number: '08012345671' },
@@ -12,11 +12,11 @@ export const students: Student[] = [
 const getFullName = (student: Student) => `${student.first_name} ${student.middle_name} ${student.last_name}`;
 
 export const services: Service[] = [
-  { id: 'SVC001', date: new Date(new Date().setDate(new Date().getDate())), type: 'morning', status: 'completed', created_by: 'Admin A', created_at: new Date() },
-  { id: 'SVC002', date: new Date(new Date().setDate(new Date().getDate())), type: 'evening', status: 'active', created_by: 'Admin B', created_at: new Date() },
-  { id: 'SVC003', date: new Date(new Date().setDate(new Date().getDate() - 1)), type: 'morning', status: 'completed', created_by: 'Admin A', created_at: new Date() },
-  { id: 'SVC004', date: new Date(new Date().setDate(new Date().getDate() + 1)), type: 'morning', status: 'upcoming', created_by: 'Admin C', created_at: new Date() },
-  { id: 'SVC005', date: new Date(new Date().setDate(new Date().getDate() + 2)), type: 'special', name: 'Founder\'s Day', status: 'upcoming', created_by: 'Admin B', created_at: new Date() },
+  { id: 'SVC001', date: new Date(new Date().setDate(new Date().getDate())), type: 'morning', status: 'completed', created_by: 'Admin A', created_at: new Date(), applicable_levels: [100,200,300,400,500] },
+  { id: 'SVC002', date: new Date(new Date().setDate(new Date().getDate())), type: 'evening', status: 'active', created_by: 'Admin B', created_at: new Date(), applicable_levels: [100,200,300,400,500] },
+  { id: 'SVC003', date: new Date(new Date().setDate(new Date().getDate() - 1)), type: 'morning', status: 'completed', created_by: 'Admin A', created_at: new Date(), applicable_levels: [100,200,300,400,500] },
+  { id: 'SVC004', date: new Date(new Date().setDate(new Date().getDate() + 1)), type: 'morning', status: 'upcoming', created_by: 'Admin C', created_at: new Date(), applicable_levels: [300,400,500] },
+  { id: 'SVC005', date: new Date(new Date().setDate(new Date().getDate() + 2)), type: 'special', name: 'Founder\'s Day', status: 'upcoming', created_by: 'Admin B', created_at: new Date(), constraint: 'all' },
   { id: 'SVC006', date: new Date(new Date().setDate(new Date().getDate() - 5)), type: 'evening', status: 'cancelled', created_by: 'Admin A', created_at: new Date() },
 ];
 
@@ -43,6 +43,16 @@ export const attendanceRecords: AttendanceRecord[] = [
   })),
   { id: 'ATTX1', matric_number: 'STU-003', student_name: getFullName(students[2]), service_id: 'SVC001', service_name: 'Morning Service', scanned_at: new Date(), status: 'exempted', exemption_reason: 'exeat' },
   { id: 'ATTX2', matric_number: 'STU-002', student_name: getFullName(students[1]), service_id: 'SVC001', service_name: 'Morning Service', scanned_at: new Date(), status: 'exempted', exemption_reason: 'manual_clear' },
+  ...students.slice(0,3).map((student, index) => ({
+    id: `ATT2-${index}`,
+    matric_number: student.matric_number,
+    student_name: getFullName(student),
+    service_id: 'SVC002',
+    service_name: 'Evening Service',
+    scanned_at: new Date(),
+    status: 'present',
+    exemption_reason: undefined,
+  }))
 ];
 
 export const warningLetterSummaries: WarningLetterSummary[] = [
@@ -67,3 +77,14 @@ export const admins: Admin[] = [
 
 // This simulates the currently logged-in user.
 export const currentAdmin: Admin = admins[0]; // Currently logged in as a superadmin
+
+export const manualClearReasons: ManualClearReason[] = [
+    { id: 'MCR001', reason: 'Student not in registry', created_by: 'Super Admin User', created_at: new Date() },
+    { id: 'MCR002', reason: 'Scanner malfunction', created_by: 'Super Admin User', created_at: new Date() },
+    { id: 'MCR003', reason: 'Verified manual entry', created_by: 'Super Admin User', created_at: new Date() },
+];
+
+export const serviceConstraints: ServiceConstraint[] = [
+    { id: 'SC001', name: 'All Levels Must Attend', description: 'This service is mandatory for all students regardless of level.', created_by: 'Super Admin User', created_at: new Date() },
+    { id: 'SC002', name: 'No Level Restriction', description: 'This service is open to all, but not mandatory for any specific level.', created_by: 'Super Admin User', created_at: new Date() },
+];

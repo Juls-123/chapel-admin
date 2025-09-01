@@ -24,6 +24,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -33,16 +34,27 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { services as initialServices } from '@/lib/mock-data';
+import { Checkbox } from '@/components/ui/checkbox';
+import { services as initialServices, serviceConstraints } from '@/lib/mock-data';
 import { ServiceTable } from './data-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Service } from '@/lib/types';
 
+const levels = [
+    { id: 100, label: '100 Level' },
+    { id: 200, label: '200 Level' },
+    { id: 300, label: '300 Level' },
+    { id: 400, label: '400 Level' },
+    { id: 500, label: '500 Level' },
+];
+
 const serviceFormSchema = z.object({
   type: z.enum(['morning', 'evening', 'special'], { required_error: 'Please select a service type.' }),
   name: z.string().optional(),
   date: z.date({ required_error: 'A service date is required.' }),
+  applicable_levels: z.array(z.number()).optional(),
+  constraint: z.string().optional(),
 }).refine((data) => {
     if (data.type === 'special') {
         return !!data.name && data.name.length > 0;
@@ -51,6 +63,14 @@ const serviceFormSchema = z.object({
 }, {
     message: 'A name is required for special services.',
     path: ['name'],
+}).refine((data) => {
+    if (data.type !== 'special') {
+        return data.applicable_levels && data.applicable_levels.length > 0;
+    }
+    return true;
+}, {
+    message: 'At least one level must be selected for morning or evening services.',
+    path: ['applicable_levels'],
 });
 
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
@@ -66,6 +86,8 @@ export default function ServiceManagementPage() {
         defaultValues: {
             type: 'morning',
             name: '',
+            applicable_levels: [],
+            constraint: 'none',
         }
     });
 
@@ -75,12 +97,16 @@ export default function ServiceManagementPage() {
                 type: editingService.type,
                 name: editingService.name || '',
                 date: new Date(editingService.date),
+                applicable_levels: editingService.applicable_levels || [],
+                constraint: editingService.constraint || 'none',
             });
         } else {
             form.reset({
                 type: 'morning',
                 name: '',
                 date: undefined,
+                applicable_levels: [],
+                constraint: 'none',
             });
         }
     }, [editingService, form]);
@@ -113,7 +139,7 @@ export default function ServiceManagementPage() {
     
     const handleCreate = () => {
         setEditingService(null);
-        form.reset({ type: 'morning', name: '', date: undefined });
+        form.reset({ type: 'morning', name: '', date: undefined, applicable_levels: [] });
         setOpen(true);
     }
 
@@ -143,7 +169,7 @@ export default function ServiceManagementPage() {
               setEditingService(null);
           }
       }}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{editingService ? 'Edit Service' : 'Create New Service'}</DialogTitle>
                     <DialogDescription>
@@ -242,6 +268,86 @@ export default function ServiceManagementPage() {
                                 </FormItem>
                             )}
                         />
+
+                        {serviceType !== 'special' ? (
+                            <FormField
+                                control={form.control}
+                                name="applicable_levels"
+                                render={() => (
+                                    <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Applicable Levels</FormLabel>
+                                            <FormDescription>
+                                                Select the student levels required to attend this service.
+                                            </FormDescription>
+                                        </div>
+                                        <div className="flex flex-wrap gap-4">
+                                            {levels.map((item) => (
+                                                <FormField
+                                                    key={item.id}
+                                                    control={form.control}
+                                                    name="applicable_levels"
+                                                    render={({ field }) => {
+                                                        return (
+                                                        <FormItem
+                                                            key={item.id}
+                                                            className="flex flex-row items-start space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(item.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange([...(field.value || []), item.id])
+                                                                    : field.onChange(
+                                                                        field.value?.filter(
+                                                                        (value) => value !== item.id
+                                                                        )
+                                                                    )
+                                                                }}
+                                                            />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                                {item.label}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                        )
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ) : (
+                            <FormField
+                                control={form.control}
+                                name="constraint"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Constraints</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a constraint" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {serviceConstraints.map(constraint => (
+                                                    <SelectItem key={constraint.id} value={constraint.id}>{constraint.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription>
+                                            Apply special rules for this service.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+
                         <DialogFooter>
                             <Button type="submit">{editingService ? 'Save Changes' : 'Create Service'}</Button>
                         </DialogFooter>

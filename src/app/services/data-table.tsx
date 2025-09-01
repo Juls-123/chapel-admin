@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   flexRender,
   getCoreRowModel,
@@ -13,7 +14,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Calendar as CalendarIcon, Download, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Calendar as CalendarIcon, Download, CheckCircle, Eye } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -181,11 +182,16 @@ export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps
                       Complete Service
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={`/services/${service.id}/attendance`}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Attendance
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleDownloadAttendance(service.id, service.name || service.type)}>
                     <Download className="mr-2 h-4 w-4" />
                     Export Attendance
                   </DropdownMenuItem>
-                  <DropdownMenuItem>View Attendees</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
                   Cancel Service

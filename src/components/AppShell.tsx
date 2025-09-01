@@ -12,6 +12,8 @@ import {
   User,
   Users,
   Shield,
+  ClipboardCheck,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -28,6 +30,12 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -39,10 +47,15 @@ const navItems = [
   { href: '/students', label: 'Students', icon: Users },
   { href: '/exeats', label: 'Exeat Manager', icon: UserMinus },
   { href: '/attendance', label: 'Attendance Upload', icon: FileUp },
+  { href: '/manual-clear', label: 'Manual Clear', icon: ClipboardCheck },
   { href: '/absentees', label: 'Absentees', icon: UserX },
   { href: '/warnings', label: 'Warning Letters', icon: MailWarning },
-  { href: '/admins', label: 'Admins', icon: Shield },
 ];
+
+const settingsItems = [
+    { href: '/admins', label: 'Admins', icon: Shield },
+    { href: '/definitions', label: 'Definitions', icon: Settings },
+]
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -76,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname === item.href}
+                    isActive={pathname.startsWith(item.href) && (item.href === '/' ? pathname === '/' : true)}
                     icon={<item.icon />}
                     tooltip={{ children: item.label, side: 'right' }}
                   >
@@ -85,6 +98,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               </SidebarMenuItem>
             ))}
+            <SidebarGroup>
+                <SidebarGroupLabel>Settings</SidebarGroupLabel>
+                <SidebarGroupContent>
+                     {settingsItems.map((item) => (
+                        <SidebarMenuItem key={item.href}>
+                            <Link href={item.href}>
+                            <SidebarMenuButton
+                                isActive={pathname.startsWith(item.href)}
+                                icon={<item.icon />}
+                                tooltip={{ children: item.label, side: 'right' }}
+                            >
+                                <span>{item.label}</span>
+                            </SidebarMenuButton>
+                            </Link>
+                        </SidebarMenuItem>
+                    ))}
+                </SidebarGroupContent>
+            </SidebarGroup>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

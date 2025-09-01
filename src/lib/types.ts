@@ -19,6 +19,8 @@ export interface Service {
   status: 'active' | 'cancelled' | 'completed' | 'upcoming';
   created_by: string;
   created_at: Date;
+  applicable_levels?: number[];
+  constraint?: 'all' | 'none';
 }
 
 export interface Exeat {
@@ -76,10 +78,25 @@ export type StudentWithRecords = Student & {
 };
 
 export interface Admin {
-  id: string;
+  id:string;
   first_name: string;
   middle_name: string;
   last_name: string;
   email: string;
   role: 'superadmin' | 'admin';
+}
+
+export interface ManualClearReason {
+  id: string;
+  reason: string;
+  created_by: string;
+  created_at: Date;
+}
+
+export interface ServiceConstraint {
+  id: string;
+  name: string;
+  description: string;
+  created_by: string;
+  created_at: Date;
 }
