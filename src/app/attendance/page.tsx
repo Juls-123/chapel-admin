@@ -159,34 +159,34 @@ export default function AttendanceUploadPage() {
                 <CardTitle>1. Select Service</CardTitle>
                 <CardDescription>Choose the service for this attendance batch.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <FormLabel>Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={handleDateChange}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                     <Form {...form}>
-                        <form>
+                <CardContent>
+                    <Form {...form}>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <FormLabel>Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !selectedDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={selectedDate}
+                                        onSelect={handleDateChange}
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                             <FormField
                                 control={form.control}
                                 name="serviceId"
@@ -220,7 +220,7 @@ export default function AttendanceUploadPage() {
                                     </FormItem>
                                 )}
                             />
-                        </form>
+                        </div>
                     </Form>
                 </CardContent>
             </Card>
