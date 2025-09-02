@@ -41,6 +41,7 @@ import {
 import type { ManualClearReason, ServiceConstraint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { SemesterManagement } from '@/components/SemesterManagement';
 
 export default function DefinitionsPage() {
   const [reasons, setReasons] = useState<ManualClearReason[]>(initialReasons);
@@ -79,6 +80,11 @@ export default function DefinitionsPage() {
         title="Definitions"
         description="Manage predefined reasons for manual clearances and constraints for special services."
       />
+
+      {/* Semester Management Section */}
+      <div className="mb-6">
+        <SemesterManagement />
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="shadow-sm">

@@ -1,0 +1,181 @@
+// Global context for UI state and auth user reference - no business logic
+// PHASE 2: Replace src/services/authService.ts with Supabase wrapper - no other changes to callsites required.
+
+'use client';
+
+import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { User } from '@/lib/types/index';
+
+// Global state interface - only UI flags, auth user reference, and data loading flags
+interface GlobalState {
+  auth: {
+    user: User | null;
+  };
+  ui: {
+    sidebarOpen: boolean;
+    theme: 'light' | 'dark';
+    modalOpen: boolean;
+  };
+  dataLoading: {
+    students: boolean;
+    services: boolean;
+    attendance: boolean;
+    semesters: boolean;
+  };
+}
+
+// Action types for state updates
+type GlobalAction =
+  | { type: 'SET_USER'; payload: User | null }
+  | { type: 'CLEAR_USER' }
+  | { type: 'SET_SIDEBAR_OPEN'; payload: boolean }
+  | { type: 'SET_THEME'; payload: 'light' | 'dark' }
+  | { type: 'SET_MODAL_OPEN'; payload: boolean }
+  | { type: 'SET_DATA_LOADING'; payload: { key: keyof GlobalState['dataLoading']; loading: boolean } };
+
+// Initial state
+const initialState: GlobalState = {
+  auth: {
+    user: null,
+  },
+  ui: {
+    sidebarOpen: true,
+    theme: 'light',
+    modalOpen: false,
+  },
+  dataLoading: {
+    students: false,
+    services: false,
+    attendance: false,
+    semesters: false,
+  },
+};
+
+// Reducer function
+function globalReducer(state: GlobalState, action: GlobalAction): GlobalState {
+  switch (action.type) {
+    case 'SET_USER':
+      return {
+        ...state,
+        auth: {
+          ...state.auth,
+          user: action.payload,
+        },
+      };
+    case 'CLEAR_USER':
+      return {
+        ...state,
+        auth: {
+          ...state.auth,
+          user: null,
+        },
+      };
+    case 'SET_SIDEBAR_OPEN':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          sidebarOpen: action.payload,
+        },
+      };
+    case 'SET_THEME':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          theme: action.payload,
+        },
+      };
+    case 'SET_MODAL_OPEN':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          modalOpen: action.payload,
+        },
+      };
+    case 'SET_DATA_LOADING':
+      return {
+        ...state,
+        dataLoading: {
+          ...state.dataLoading,
+          [action.payload.key]: action.payload.loading,
+        },
+      };
+    default:
+      return state;
+  }
+}
+
+// Context interface
+interface GlobalContextType {
+  state: GlobalState;
+  setUser: (user: User | null) => void;
+  clearUser: () => void;
+  setSidebarOpen: (open: boolean) => void;
+  setTheme: (theme: 'light' | 'dark') => void;
+  setModalOpen: (open: boolean) => void;
+  setDataLoading: (key: keyof GlobalState['dataLoading'], loading: boolean) => void;
+}
+
+// Create context
+const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
+
+// Provider component
+interface GlobalProviderProps {
+  children: ReactNode;
+}
+
+export function GlobalProvider({ children }: GlobalProviderProps) {
+  const [state, dispatch] = useReducer(globalReducer, initialState);
+
+  // Action creators
+  const setUser = (user: User | null) => {
+    dispatch({ type: 'SET_USER', payload: user });
+  };
+
+  const clearUser = () => {
+    dispatch({ type: 'CLEAR_USER' });
+  };
+
+  const setSidebarOpen = (open: boolean) => {
+    dispatch({ type: 'SET_SIDEBAR_OPEN', payload: open });
+  };
+
+  const setTheme = (theme: 'light' | 'dark') => {
+    dispatch({ type: 'SET_THEME', payload: theme });
+  };
+
+  const setModalOpen = (open: boolean) => {
+    dispatch({ type: 'SET_MODAL_OPEN', payload: open });
+  };
+
+  const setDataLoading = (key: keyof GlobalState['dataLoading'], loading: boolean) => {
+    dispatch({ type: 'SET_DATA_LOADING', payload: { key, loading } });
+  };
+
+  const value: GlobalContextType = {
+    state,
+    setUser,
+    clearUser,
+    setSidebarOpen,
+    setTheme,
+    setModalOpen,
+    setDataLoading,
+  };
+
+  return (
+    <GlobalContext.Provider value={value}>
+      {children}
+    </GlobalContext.Provider>
+  );
+}
+
+// Hook to use the global context
+export function useGlobalContext() {
+  const context = useContext(GlobalContext);
+  if (context === undefined) {
+    throw new Error('useGlobalContext must be used within a GlobalProvider');
+  }
+  return context;
+}

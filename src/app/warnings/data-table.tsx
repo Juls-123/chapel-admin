@@ -31,11 +31,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import type { WarningLetterSummary, StudentWithRecords } from '@/lib/types';
+import type { WarningLetterSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StudentProfileModal } from '@/components/StudentProfileModal';
-import { students, attendanceRecords } from '@/lib/mock-data';
+
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -48,7 +48,7 @@ type WarningLettersTableProps = {
 export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: WarningLettersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<StudentWithRecords | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
@@ -79,12 +79,8 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
   };
 
   const handleViewProfile = (matricNumber: string) => {
-    const student = students.find(s => s.matric_number === matricNumber);
-    if (student) {
-      const records = attendanceRecords.filter(r => r.matric_number === matricNumber);
-      setSelectedStudent({ ...student, attendance: records });
-      setIsModalOpen(true);
-    }
+    setSelectedStudent(matricNumber);
+    setIsModalOpen(true);
   };
 
   const handleResend = (summary: WarningLetterSummary) => {
@@ -200,7 +196,7 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
   return (
     <>
       <StudentProfileModal 
-        student={selectedStudent} 
+        studentId={selectedStudent || ''} 
         open={isModalOpen} 
         onOpenChange={setIsModalOpen} 
       />

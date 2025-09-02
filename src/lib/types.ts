@@ -1,4 +1,5 @@
 export interface Student {
+  level_id: string;
   id: string;
   matric_number: string;
   first_name: string;
@@ -12,6 +13,7 @@ export interface Student {
 }
 
 export interface Service {
+  service_date: string;
   id: string;
   date: Date;
   type: 'morning' | 'evening' | 'special';
