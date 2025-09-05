@@ -40,12 +40,16 @@ import { useToast } from '@/hooks/use-toast';
 type AdminTableProps = {
     data: Admin[];
     onEdit: (admin: Admin) => void;
+    onDelete: (admin: Admin) => void;
+    onPromote: (admin: Admin) => void;
     isSuperAdmin: boolean;
+    isDeleting?: boolean;
+    isPromoting?: boolean;
 };
 
 const getFullName = (admin: Admin) => `${admin.first_name} ${admin.last_name}`;
 
-export function AdminTable({ data, onEdit, isSuperAdmin }: AdminTableProps) {
+export function AdminTable({ data, onEdit, onDelete, onPromote, isSuperAdmin, isDeleting, isPromoting }: AdminTableProps) {
   const [globalFilter, setGlobalFilter] = useState('');
   const { toast } = useToast();
 
@@ -54,12 +58,12 @@ export function AdminTable({ data, onEdit, isSuperAdmin }: AdminTableProps) {
         toast({ title: 'Already a Superadmin', variant: 'destructive' });
         return;
     }
-    // In a real app, you would make an API call here.
-    toast({
-        title: 'Admin Promoted',
-        description: `${getFullName(admin)} has been promoted to Superadmin.`,
-    });
-  }
+    onPromote(admin);
+  };
+  
+  const handleDelete = (admin: Admin) => {
+    onDelete(admin);
+  };
 
   const columns: ColumnDef<Admin>[] = [
     {
@@ -116,14 +120,21 @@ export function AdminTable({ data, onEdit, isSuperAdmin }: AdminTableProps) {
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Admin
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handlePromote(admin)} disabled={admin.role === 'superadmin'}>
+                      <DropdownMenuItem 
+                          onClick={() => handlePromote(admin)} 
+                          disabled={admin.role === 'superadmin' || isPromoting}
+                      >
                           <ShieldCheck className="mr-2 h-4 w-4" />
-                          Promote to Superadmin
+                          {isPromoting ? 'Promoting...' : 'Promote to Superadmin'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                      <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          onClick={() => handleDelete(admin)}
+                          disabled={isDeleting}
+                      >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Admin
+                          {isDeleting ? 'Deleting...' : 'Delete Admin'}
                       </DropdownMenuItem>
                   </DropdownMenuContent>
                   </DropdownMenu>

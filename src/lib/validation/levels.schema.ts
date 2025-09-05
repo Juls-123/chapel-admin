@@ -3,26 +3,19 @@
 
 import { z } from 'zod';
 
+// Schema matching database structure exactly
 export const levelSchema = z.object({
   id: z.string().uuid(),
-  code: z.string(), // "100", "200", "300", "400" - UNIQUE constraint
-  name: z.string().optional(), // optional display name
-  created_at: z.string().refine(s => !isNaN(Date.parse(s)), { message: 'Invalid datetime' })
+  code: z.string(), // text field in DB
+  name: z.string().nullable(), // text null in DB
+  created_at: z.string().nullable(), // timestamp with time zone null in DB
 });
-
-export const levelCreateSchema = levelSchema.omit({ 
-  id: true, 
-  created_at: true 
-});
-
-export const levelUpdateSchema = levelCreateSchema.partial();
 
 export type Level = z.infer<typeof levelSchema>;
-export type LevelCreate = z.infer<typeof levelCreateSchema>;
-export type LevelUpdate = z.infer<typeof levelUpdateSchema>;
 
-// Validation test
-if (require.main === module) {
+// No create/update schemas needed since levels are not created via API
+// Validation test (Node.js only - skip in browser/Next.js)
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   const testLevel = {
     id: '8c9d0eff-bbbb-cccc-dddd-0123456789cd',
     code: '100',

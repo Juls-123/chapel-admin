@@ -41,8 +41,21 @@ import { Semester } from '@/lib/types/index';
 
 export function SemesterManagement() {
   const [open, setOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingSemester, setEditingSemester] = useState<Semester | null>(null);
-  const { data: semesters, isLoading, error, refetch } = useSemesters();
+  const [semesterToDelete, setSemesterToDelete] = useState<Semester | null>(null);
+  const { 
+    semesters, 
+    isLoading, 
+    error, 
+    refetch,
+    createSemester,
+    updateSemester,
+    deleteSemester,
+    isCreating,
+    isUpdating,
+    isDeleting
+  } = useSemesters();
   const { success: showSuccess, error: showError } = useToastExt();
 
   const handleAddSemester = () => {
@@ -65,36 +78,26 @@ export function SemesterManagement() {
       end_date: formData.get('end_date') as string,
     };
 
-    try {
-      // TODO: Implement API call when backend is ready
-      if (editingSemester) {
-        console.log('Updating semester:', { ...semesterData, id: editingSemester.id });
-        showSuccess('Semester Updated', `"${semesterData.name}" has been updated.`);
-      } else {
-        console.log('Creating semester:', semesterData);
-        showSuccess('Semester Created', `"${semesterData.name}" has been created.`);
-      }
-      
-      setOpen(false);
-      setEditingSemester(null);
-      // TODO: Refetch data when API is implemented
-      // refetch();
-    } catch (error) {
-      showError('Failed to save semester', 'Please try again.');
+    if (editingSemester) {
+      updateSemester({ id: editingSemester.id, ...semesterData });
+    } else {
+      createSemester(semesterData);
     }
+    
+    setOpen(false);
+    setEditingSemester(null);
   };
 
-  const handleDeleteSemester = async (semester: Semester) => {
-    if (confirm(`Are you sure you want to delete "${semester.name}"?`)) {
-      try {
-        // TODO: Implement API call when backend is ready
-        console.log('Deleting semester:', semester.id);
-        showSuccess('Semester Deleted', `"${semester.name}" has been deleted.`);
-        // TODO: Refetch data when API is implemented
-        // refetch();
-      } catch (error) {
-        showError('Failed to delete semester', 'Please try again.');
-      }
+  const handleDeleteSemester = (semester: Semester) => {
+    setSemesterToDelete(semester);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteSemester = () => {
+    if (semesterToDelete) {
+      deleteSemester(semesterToDelete.id);
+      setDeleteDialogOpen(false);
+      setSemesterToDelete(null);
     }
   };
 
@@ -177,6 +180,7 @@ export function SemesterManagement() {
                           size="icon" 
                           className="h-8 w-8"
                           onClick={() => handleEditSemester(semester)}
+                          disabled={isUpdating || isDeleting}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -185,6 +189,7 @@ export function SemesterManagement() {
                           size="icon" 
                           className="text-destructive h-8 w-8"
                           onClick={() => handleDeleteSemester(semester)}
+                          disabled={isUpdating || isDeleting}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -245,11 +250,61 @@ export function SemesterManagement() {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingSemester ? 'Update' : 'Create'} Semester
+              <Button 
+                type="submit" 
+                disabled={isCreating || isUpdating}
+                className="min-w-[120px]"
+              >
+                {(isCreating || isUpdating) ? (
+                  <>
+                    <Calendar className="h-4 w-4 mr-2 animate-spin" />
+                    {editingSemester ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  `${editingSemester ? 'Update' : 'Create'} Semester`
+                )}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Semester</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete "{semesterToDelete?.name}"? 
+              This action cannot be undone and will remove all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive"
+              onClick={confirmDeleteSemester}
+              disabled={isDeleting}
+              className="min-w-[100px]"
+            >
+              {isDeleting ? (
+                <>
+                  <Calendar className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

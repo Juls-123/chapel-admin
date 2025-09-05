@@ -22,8 +22,8 @@ export const vwStudentProfileAttendanceSchema = z.object({
 
 export type VwStudentProfileAttendance = z.infer<typeof vwStudentProfileAttendanceSchema>;
 
-// Validation test
-if (require.main === module) {
+// Validation test (Node.js only)
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   const testProfileData = {
     student_id: '7a8b9cde-aaaa-bbbb-cccc-0123456789ab',
     matric_number: 'STU-001',

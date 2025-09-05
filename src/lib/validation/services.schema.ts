@@ -31,8 +31,38 @@ export type ServiceUpdate = z.infer<typeof serviceUpdateSchema>;
 export type ServiceType = z.infer<typeof serviceTypeEnum>;
 export type ServiceStatus = z.infer<typeof serviceStatusEnum>;
 
-// Validation test
-if (require.main === module) {
+// Enhanced schemas for API operations
+export const serviceQuerySchema = z.object({
+  page: z.string().transform(Number).optional().default('1'),
+  limit: z.string().transform(Number).optional().default('10'),
+  type: serviceTypeEnum.optional(),
+  status: serviceStatusEnum.optional(),
+  date_from: z.string().optional(),
+  date_to: z.string().optional(),
+  search: z.string().optional(),
+});
+
+export const serviceCreateRequestSchema = z.object({
+  type: serviceTypeEnum,
+  name: z.string().optional(),
+  service_date: z.string().refine(s => !isNaN(Date.parse(s)), { message: 'Invalid date' }),
+  applicable_levels: z.array(z.string()).optional(), // Level codes like ["100", "200"]
+  constraints: z.record(z.any()).optional(), // JSON constraints
+}).refine((data) => {
+  if (data.type === 'special') {
+    return !!data.name && data.name.length > 0;
+  }
+  return true;
+}, {
+  message: 'A name is required for special services.',
+  path: ['name'],
+});
+
+export type ServiceQuery = z.infer<typeof serviceQuerySchema>;
+export type ServiceCreateRequest = z.infer<typeof serviceCreateRequestSchema>;
+
+// Validation test (Node.js only - skip in browser/Next.js)
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   const testService = {
     id: '9d0e1f23-cccc-dddd-eeee-0123456789ef',
     type: 'morning' as const,

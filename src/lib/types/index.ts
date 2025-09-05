@@ -128,6 +128,9 @@ export type AdminCreate = z.infer<typeof adminCreateSchema>;
 export type AdminUpdate = z.infer<typeof adminUpdateSchema>;
 export type Role = z.infer<typeof roleEnum>;
 
+// Re-export from schema files to ensure availability
+export { adminCreateSchema, adminUpdateSchema } from '../validation/admins.schema';
+
 export type Semester = z.infer<typeof semesterSchema>;
 export type SemesterCreate = z.infer<typeof semesterCreateSchema>;
 export type SemesterUpdate = z.infer<typeof semesterUpdateSchema>;

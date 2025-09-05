@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StudentProfileModal } from '@/components/StudentProfileModal';
 
 import { useToast } from '@/hooks/use-toast';
+import { useUpdateWarning, useGeneratePDF } from '@/hooks/useWarnings';
 
 
 type WarningLettersTableProps = {
@@ -51,6 +52,10 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
+  
+  // Mutations
+  const updateWarning = useUpdateWarning();
+  const generatePDF = useGeneratePDF();
 
   useEffect(() => {
     if (data.length > 0 && !selectedRowId) {
@@ -83,13 +88,28 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
     setIsModalOpen(true);
   };
 
-  const handleResend = (summary: WarningLetterSummary) => {
-    onUpdateStatus(summary.matric_number, 'sent');
-    toast({
-        title: "Letter Sent",
-        description: `Warning letter for ${summary.student_name} has been marked as sent.`
-    })
-  }
+  const handleResend = async (summary: WarningLetterSummary) => {
+    try {
+      await updateWarning.mutateAsync({
+        matric_number: summary.matric_number,
+        status: 'sent'
+      });
+      onUpdateStatus(summary.matric_number, 'sent');
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
+
+  const handleDownloadPDF = async (summary: WarningLetterSummary) => {
+    try {
+      await generatePDF.mutateAsync({
+        matric_number: summary.matric_number,
+        week_start: summary.week_start.toISOString().split('T')[0]
+      });
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
 
   const columns: ColumnDef<WarningLetterSummary>[] = [
       {
@@ -131,13 +151,13 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
           cell: ({ row }) => {
               const status = row.getValue('status') as WarningLetterSummary['status'];
               const statusConfig = {
+                  none: { label: "None", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300" },
                   pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300" },
                   sent: { label: "Sent", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" },
-                  failed: { label: "Failed", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" },
               }
               return (
-                  <Badge variant="outline" className={cn("border-0 capitalize", statusConfig[status].color)}>
-                      {statusConfig[status].label}
+                  <Badge variant="outline" className={cn("border-0 capitalize", statusConfig[status]?.color || statusConfig.none.color)}>
+                      {statusConfig[status]?.label || statusConfig.none.label}
                   </Badge>
               )
           }
@@ -157,11 +177,20 @@ export function WarningLettersTable({ data, onRowSelect, onUpdateStatus }: Warni
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleResend(summary) }} disabled={summary.status === 'sent'}>
-                            Resend Letter
+                          <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleResend(summary); }}
+                            disabled={updateWarning.isPending || summary.status === 'sent'}
+                          >
+                            {updateWarning.isPending ? 'Sending...' : 'Mark as Sent'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewProfile(row.original.matric_number) }}>
-                            View History
+                          <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleDownloadPDF(summary); }}
+                            disabled={generatePDF.isPending}
+                          >
+                            {generatePDF.isPending ? 'Generating...' : 'Download PDF'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewProfile(row.original.matric_number); }}>
+                            View Student Profile
                           </DropdownMenuItem>
                       </DropdownMenuContent>
                       </DropdownMenu>

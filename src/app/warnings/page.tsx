@@ -2,72 +2,103 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, FileText, Send, FileDown } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, add, sub } from 'date-fns';
+import { ChevronLeft, ChevronRight, FileText, Send, FileDown, RefreshCw, Plus } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, add } from 'date-fns';
 
 import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { warningLetterSummaries as initialWarnings } from '@/lib/mock-data';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { WarningLetterSummary } from '@/lib/types';
 import { WarningLettersTable } from './data-table';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  useWarnings, 
+  useGenerateWarnings, 
+  useBulkUpdateWarnings, 
+  useWarningStats 
+} from '@/hooks/useWarnings';
+import { LoadingSpinner } from '@/components/ui-states/LoadingSpinner';
+import { ErrorState } from '@/components/ui-states/ErrorState';
+import { EmptyState } from '@/components/ui-states/EmptyState';
 
 export default function WarningLettersPage() {
-  const [warnings, setWarnings] = useState<WarningLetterSummary[]>(initialWarnings);
   const [selectedStudent, setSelectedStudent] = useState<WarningLetterSummary | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Filter warnings based on the selected week
-    const start = startOfWeek(add(new Date(), { weeks: weekOffset }), { weekStartsOn: 1 });
-    const end = endOfWeek(add(new Date(), { weeks: weekOffset }), { weekStartsOn: 1 });
-    
-    const filtered = initialWarnings.filter(w => {
-      const warningDate = new Date(w.week_start);
-      return warningDate >= start && warningDate <= end;
-    });
+  // Calculate current week start date
+  const currentWeekStart = startOfWeek(add(new Date(), { weeks: weekOffset }), { weekStartsOn: 1 });
+  const weekStartString = format(currentWeekStart, 'yyyy-MM-dd');
 
-    setWarnings(filtered);
-    setSelectedStudent(filtered.length > 0 ? filtered[0] : null);
-  }, [weekOffset]);
+  // Fetch warnings data
+  const { data: warningsData, isLoading, error, refetch } = useWarnings({
+    week_start: weekStartString,
+    page: 1,
+    limit: 100
+  });
+
+  const warnings = warningsData?.data || [];
+  const { stats, isLoading: statsLoading } = useWarningStats(weekStartString);
+  
+  // Mutations
+  const generateWarnings = useGenerateWarnings();
+  const bulkUpdateWarnings = useBulkUpdateWarnings();
+
+  useEffect(() => {
+    if (warnings.length > 0 && !selectedStudent) {
+      setSelectedStudent(warnings[0]);
+    } else if (warnings.length === 0) {
+      setSelectedStudent(null);
+    }
+  }, [warnings, selectedStudent]);
 
   const handleSelectStudent = (student: WarningLetterSummary) => {
     setSelectedStudent(student);
   };
   
   const handleUpdateStatus = (matricNumber: string, status: WarningLetterSummary['status']) => {
-    const updatedWarnings = warnings.map(w => 
-        w.matric_number === matricNumber ? { ...w, status } : w
-    );
-    setWarnings(updatedWarnings);
-    if(selectedStudent?.matric_number === matricNumber) {
-        setSelectedStudent(prev => prev ? {...prev, status} : null);
+    // This will be handled by the mutation hooks and automatic refetch
+    if (selectedStudent?.matric_number === matricNumber) {
+      setSelectedStudent(prev => prev ? {...prev, status} : null);
     }
   };
 
-  const handleSendAll = () => {
-    const pendingCount = warnings.filter(w => w.status === 'pending' || w.status === 'failed').length;
-    if(pendingCount === 0) {
-        toast({ title: 'No letters to send', description: 'All warnings have already been sent.' });
-        return;
+  const handleGenerateWarnings = async () => {
+    try {
+      await generateWarnings.mutateAsync({
+        week_start: weekStartString,
+        threshold: 2 // Default threshold of 2 absences
+      });
+      refetch(); // Refresh the data
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
+
+  const handleSendAll = async () => {
+    const pendingCount = warnings.filter(w => w.status === 'pending').length;
+    if (pendingCount === 0) {
+      toast({ 
+        title: 'No letters to send', 
+        description: 'All warnings have already been sent.' 
+      });
+      return;
     }
 
-    const updatedWarnings = warnings.map(w => 
-      (w.status === 'pending' || w.status === 'failed') ? { ...w, status: 'sent' as const } : w
-    );
-    setWarnings(updatedWarnings);
-    if (selectedStudent) {
-        const newSelected = updatedWarnings.find(w => w.matric_number === selectedStudent.matric_number);
-        setSelectedStudent(newSelected || null);
+    try {
+      await bulkUpdateWarnings.mutateAsync({
+        week_start: weekStartString,
+        status: 'sent'
+      });
+      refetch(); // Refresh the data
+    } catch (error) {
+      // Error handling is done in the hook
     }
-    toast({
-        title: `${pendingCount} Letters Sent`,
-        description: `All pending/failed warnings for this week have been sent.`
-    })
-  }
+  };
 
   const getWeekDisplay = (offset: number) => {
     const start = startOfWeek(add(new Date(), { weeks: offset }), { weekStartsOn: 1 });
@@ -76,7 +107,39 @@ export default function WarningLettersPage() {
   };
 
   const getFirstName = (fullName: string) => {
-      return fullName.split(' ')[0];
+    return fullName.split(' ')[0];
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <AppShell>
+        <PageHeader
+          title="Warning Letters"
+          description="Generate, review, and send warning letters to students."
+        />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner size="lg" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AppShell>
+        <PageHeader
+          title="Warning Letters"
+          description="Generate, review, and send warning letters to students."
+        />
+        <ErrorState
+          title="Failed to load warning letters"
+          message={error.message}
+          onRetry={() => refetch()}
+        />
+      </AppShell>
+    );
   }
 
   return (
@@ -95,21 +158,112 @@ export default function WarningLettersPage() {
                 <ChevronRight className="h-4 w-4" />
             </Button>
         </div>
-        <div className='flex items-center gap-2'>
-            <Button onClick={handleSendAll}>
-                <Send className="mr-2 h-4 w-4" />
-                Send All Pending
+        <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleGenerateWarnings}
+              disabled={generateWarnings.isPending}
+            >
+              {generateWarnings.isPending ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Generate
             </Button>
-            <Button variant="secondary">
-                <FileDown className="mr-2 h-4 w-4" />
-                Export as PDF
+            <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleSendAll}
+                disabled={warnings.filter(w => w.status === 'pending').length === 0 || bulkUpdateWarnings.isPending}
+            >
+                {bulkUpdateWarnings.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Send All
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
         </div>
       </div>
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <WarningLettersTable data={warnings} onRowSelect={handleSelectStudent} onUpdateStatus={handleUpdateStatus}/>
-        </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Warnings</p>
+                <div className="text-2xl font-bold">{statsLoading ? <Skeleton className="h-8 w-12" /> : stats.total}</div>
+              </div>
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                <div className="text-2xl font-bold text-orange-600">{statsLoading ? <Skeleton className="h-8 w-12" /> : stats.pending}</div>
+              </div>
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                {statsLoading ? '...' : stats.pending}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Sent</p>
+                <div className="text-2xl font-bold text-green-600">{statsLoading ? <Skeleton className="h-8 w-12" /> : stats.sent}</div>
+              </div>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                {statsLoading ? '...' : stats.sent}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">High Risk</p>
+                <div className="text-2xl font-bold text-red-600">{statsLoading ? <Skeleton className="h-8 w-12" /> : stats.highRisk}</div>
+              </div>
+              <Badge variant="destructive">
+                {statsLoading ? '...' : `${stats.highRisk} (3+ absences)`}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      {warnings.length === 0 ? (
+        <EmptyState
+          title="No warning letters found"
+          message={`No warning letters found for the week of ${getWeekDisplay(weekOffset)}. Generate warnings to get started.`}
+          actionLabel="Generate Warnings"
+          onAction={handleGenerateWarnings}
+        />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <WarningLettersTable data={warnings} onRowSelect={handleSelectStudent} onUpdateStatus={handleUpdateStatus}/>
+          </div>
         <div className="lg:col-span-2">
             <Card className="shadow-sm sticky top-20">
                 <CardHeader>
@@ -128,12 +282,7 @@ export default function WarningLettersPage() {
                             
                             <p className="mb-4">This letter serves as a formal warning regarding your attendance at required chapel services. Our records indicate that you have missed <strong>{selectedStudent.miss_count}</strong> services for the week of <strong>{format(new Date(selectedStudent.week_start), 'PPP')}</strong> to <strong>{format(endOfWeek(new Date(selectedStudent.week_start), { weekStartsOn: 1 }), 'PPP')}</strong>.</p>
                             
-                            <p className="mb-2">The dates of the missed services are as follows:</p>
-                            <ul className="list-disc list-inside mb-4">
-                                {selectedStudent.missed_service_dates.map(date => (
-                                    <li key={new Date(date).toISOString()}>{format(new Date(date), 'PPP')}</li>
-                                ))}
-                            </ul>
+                            <p className="mb-4">Chapel attendance is mandatory for all students as outlined in the Student Handbook. Consistent attendance is essential for your spiritual development and is a requirement for your continued enrollment.</p>
 
                             <p className="mb-4">Consistent attendance is a vital part of our community ethos. Please ensure you attend all future services. If you believe this is an error, or if there are extenuating circumstances, please contact the administrative office immediately.</p>
 
@@ -152,8 +301,9 @@ export default function WarningLettersPage() {
                     )}
                 </CardContent>
             </Card>
+          </div>
         </div>
-      </div>
+      )}
     </AppShell>
   );
 }

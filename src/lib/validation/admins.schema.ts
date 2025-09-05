@@ -29,15 +29,15 @@ export type AdminCreate = z.infer<typeof adminCreateSchema>;
 export type AdminUpdate = z.infer<typeof adminUpdateSchema>;
 export type Role = z.infer<typeof roleEnum>;
 
-// Validation test
-if (require.main === module) {
-  const testAdmin = {
-    id: 'ae1f2345-dddd-eeee-ffff-0123456789ab',
-    first_name: 'John',
-    last_name: 'Admin',
-    email: 'john.admin@chapel.edu',
-    role: 'admin' as const,
-    created_at: new Date().toISOString()
-  };
-  console.log('Admin schema validation:', adminSchema.safeParse(testAdmin));
-}
+// Validation test - removed for Next.js compatibility
+// if (require.main === module) {
+//   const testAdmin = {
+//     id: 'ae1f2345-dddd-eeee-ffff-0123456789ab',
+//     first_name: 'John',
+//     last_name: 'Admin',
+//     email: 'john.admin@chapel.edu',
+//     role: 'admin' as const,
+//     created_at: new Date().toISOString()
+//   };
+//   console.log('Admin schema validation:', adminSchema.safeParse(testAdmin));
+// }

@@ -1,0 +1,116 @@
+First Name,Middle Name,Last Name,Matriculation Number,Level,Gender,Student Email,Parent's Email,Parent's Phone Number,Department
+PRECIOUS,OLUWAFUNMILAYO,OLUSOGBON,22020401007,300,Female,precious.olusogbon@mtu.edu.ng,parent.olusogbon@example.com,+2348031234567,LANGUAGES
+DANIEL,INIOLUWA,ADEWALE,22020101004,300,Male,daniel.adewale@mtu.edu.ng,parent.adewale@example.com,+2348052345678,ACCOUNTING & FINANCE
+ELSIE,OSASUME,EMOKPAE,22020601062,300,Female,elsie.emokpae@mtu.edu.ng,parent.emokpae@example.com,+2348063456789,MASS COMMUNICATION
+FAVOUR,ONYINYE,DANIEL,23020601034,300,Female,favour.daniel@mtu.edu.ng,parent.daniel@example.com,+2348074567890,MASS COMMUNICATION
+BEATRICE,OLUWABUKUNMI,ABIOYE,22020601086,300,Female,beatrice.abioye@mtu.edu.ng,parent.abioye@example.com,+2348085678901,MASS COMMUNICATION
+ONYINYECHI,IRENE,MMEKA,22020601023,300,Female,onyinyechi.mmeka@mtu.edu.ng,parent.mmeka@example.com,+2348096789012,MASS COMMUNICATION
+SAMUEL,TEMIDAYO,OJO,19020201022,300,Male,samuel.ojo@mtu.edu.ng,parent.ojo@example.com,+2348037890123,BUSINESS ADMINISTRATION
+WISDOM,OLAJUMOKE,AYENI,22020301005,300,Male,wisdom.ayeni@mtu.edu.ng,parent.ayeni@example.com,+2348058901234,ECONOMICS
+LOIS,UFEDOOJO,AKOGU,22020101019,300,Female,lois.akogu@mtu.edu.ng,parent.akogu@example.com,+2348069012345,ACCOUNTING & FINANCE
+FOLUKE,GRACE,OLUKAYODE,22020401017,300,Female,foluke.olukayode@mtu.edu.ng,parent.olukayode@example.com,+2348070123456,LANGUAGES
+HOLINESS,ESTHER,EZEIGWE,22020101041,300,Female,holiness.ezeigwe@mtu.edu.ng,parent.ezeigwe@example.com,+2348081234567,ACCOUNTING & FINANCE
+TEMITOPE,ESTHER,OYENIYAN,22020101017,300,Female,temitope.oyeniyan@mtu.edu.ng,parent.oyeniyan@example.com,+2348092345678,ACCOUNTING & FINANCE
+OGHENERUKEVWE,GLORY,AKPOTU,22020201019,300,Female,oghenerukevwe.akpotu@mtu.edu.ng,parent.akpotu@example.com,+2348033456789,BUSINESS ADMINISTRATION
+DIVINE,ESOSA,EGBE,22020101054,300,Male,divine.egbe@mtu.edu.ng,parent.egbe@example.com,+2348054567890,ACCOUNTING & FINANCE
+FOLAKE,STEPHANIE,ORENAIKE,22020601014,300,Female,folake.orenaike@mtu.edu.ng,parent.orenaike@example.com,+2348065678901,MASS COMMUNICATION
+SAMUEL,CHINAZA,NWAEZE,22020101052,300,Male,samuel.nwaeze@mtu.edu.ng,parent.nwaeze@example.com,+2348076789012,ACCOUNTING & FINANCE
+EVALSAM,VICTOR,ADUEKPE,22020201002,300,Male,evalsam.aduekpe@mtu.edu.ng,parent.aduekpe@example.com,+2348087890123,BUSINESS ADMINISTRATION
+IFEJESU,FLORENCE,OGHOBASE,22020601058,300,Female,ifejesu.oghobase@mtu.edu.ng,parent.oghobase@example.com,+2348098901234,MASS COMMUNICATION
+MERCY,ADURAGBEMI,ILORI,22020601066,300,Female,mercy.ilori@mtu.edu.ng,parent.ilori@example.com,+2348039012345,MASS COMMUNICATION
+MAYOWA,MERCY,ADESAGBA,22020202007,300,Female,mayowa.adesagba@mtu.edu.ng,parent.adesagba@example.com,+2348050123456,BUSINESS ADMINISTRATION
+TOLUWANI,MARY,ADEWALE,22020301002,300,Female,toluwani.adewale@mtu.edu.ng,parent.adewale@example.com,+2348061234567,ECONOMICS
+FAVOUR,DAMILOLA,OLABISI,22020101020,300,Female,favour.olabisi@mtu.edu.ng,parent.olabisi@example.com,+2348072345678,ACCOUNTING & FINANCE
+FAVOUR,MUSA,MARSHAN,22020601002,300,Female,favour.marshan@mtu.edu.ng,parent.marshan@example.com,+2348083456789,MASS COMMUNICATION
+ELIZABETH,OLUWAFUNMILAYO,AKINLEYE,22020301001,300,Female,elizabeth.akinleye@mtu.edu.ng,parent.akinleye@example.com,+2348094567890,ECONOMICS
+OLUWAJUWON,FAVOUR,AYINDE,22020101049,300,Female,oluwajuwon.ayinde@mtu.edu.ng,parent.ayinde@example.com,+2348035678901,ACCOUNTING & FINANCE
+OLUKAYODE,OLUWAREMILEKUN,OGUNLEYE,22020202002,300,Male,olukayode.ogunleye@mtu.edu.ng,parent.ogunleye@example.com,+2348056789012,BUSINESS ADMINISTRATION
+DAMILOLA,PRECIOUS,OLOWOGBADE,22020101003,300,Female,damilola.olowogbade@mtu.edu.ng,parent.olowogbade@example.com,+2348067890123,ACCOUNTING & FINANCE
+PETER,DAMILOLA,ODUNUGA,22020201001,300,Male,peter.odunuga@mtu.edu.ng,parent.odunuga@example.com,+2348078901234,BUSINESS ADMINISTRATION
+PEACE,DEBORAH,ABAYOMI,22020601091,300,Female,peace.abayomi@mtu.edu.ng,parent.abayomi@example.com,+2348089012345,MASS COMMUNICATION
+JANET,OCHOLE,IPOLE,22020601069,300,Female,janet.ipole@mtu.edu.ng,parent.ipole@example.com,+2348090123456,MASS COMMUNICATION
+HEPHZIBAH,ANUOLUWAPO,AKINYOOYE,22010501002,300,Female,hephzibah.akinyooye@mtu.edu.ng,parent.akinyooye@example.com,+2348031234567,FOOD SCIENCE & TECH.
+GOODNESS,CHINYERE,EZEJI,22020101018,300,Female,goodness.ezeji@mtu.edu.ng,parent.ezeji@example.com,+2348052345678,ACCOUNTING & FINANCE
+JESUTOFUNMI,OLUWADARA,BALOGUN,23020201020,300,Female,jesutofunmi.balogun@mtu.edu.ng,parent.balogun@example.com,+2348063456789,BUSINESS ADMINISTRATION
+JOAN,OLUWAKEMI,OLAJIRE,22020101006,300,Female,joan.olajire@mtu.edu.ng,parent.olajire@example.com,+2348074567890,ACCOUNTING & FINANCE
+MOBISOLA,VICTORIA,ADEBAYO,22020101008,300,Female,mobisola.adebayo@mtu.edu.ng,parent.adebayo@example.com,+2348085678901,ACCOUNTING & FINANCE
+DEBORAH,OLUWALOSEYIFUNMI,EMMANUEL,22020101011,300,Female,deborah.emmanuel@mtu.edu.ng,parent.emmanuel@example.com,+2348096789012,ACCOUNTING & FINANCE
+IBUKUNOLUWA,FAVOUR,KOMOLAFE,22020202003,300,Female,ibukunoluwa.komolafe@mtu.edu.ng,parent.komolafe@example.com,+2348037890123,BUSINESS ADMINISTRATION
+OKAKAOBARI,,LALECHU,22010501006,300,Male,okakaobari.lalechu@mtu.edu.ng,parent.lalechu@example.com,+2348058901234,FOOD SCIENCE & TECH.
+ABISOLUWA,GOODNESS,ABIODUN,22020601032,300,Female,abisoluwag.abiodun@mtu.edu.ng,parent.abiodun@example.com,+2348069012345,MASS COMMUNICATION
+ADANNA,BLESSING,NWANKWO-STEVE,22020601001,300,Female,adanna.nwankwo-steve@mtu.edu.ng,parent.nwankwo-steve@example.com,+2348070123456,MASS COMMUNICATION
+JOY,NGOZI,OBIECHIE,22020301013,300,Female,joy.obiechie@mtu.edu.ng,parent.obiechie@example.com,+2348081234567,ECONOMICS
+CLAIRE,LOLIYA,BOB-MANUEL,22020401002,300,Female,claire.bob-manuel@mtu.edu.ng,parent.bob-manuel@example.com,+2348092345678,LANGUAGES
+IFUNANAYA,GLORY,OKEKE,22020101045,300,Female,ifunanaya.okeke@mtu.edu.ng,parent.okeke@example.com,+2348033456789,ACCOUNTING & FINANCE
+BLESSING,MARY,ONI,22020101028,300,Female,blessing.oni@mtu.edu.ng,parent.oni@example.com,+2348054567890,ACCOUNTING & FINANCE
+JULIET,IFEOMA,MADUAKOLAM,22020301003,300,Female,juliet.maduakolam@mtu.edu.ng,parent.maduakolam@example.com,+2348065678901,ECONOMICS
+MERCY,AYOMIPOSI,IGOTUN,22020201020,300,Female,mercy.igotun@mtu.edu.ng,parent.igotun@example.com,+2348076789012,BUSINESS ADMINISTRATION
+OYIZA,JOY,OZOVEHE,22020101012,300,Female,oyiza.ozovehe@mtu.edu.ng,parent.ozovehe@example.com,+2348087890123,ACCOUNTING & FINANCE
+AYOMIDE,OLUWATOSIN,AGUNBIADE,22020201008,300,Female,ayomide.agunbiade@mtu.edu.ng,parent.agunbiade@example.com,+2348098901234,BUSINESS ADMINISTRATION
+OYINTOMIWA,VALENTINA,OLUMIDE,22020101046,300,Female,oyintomiwa.olumide@mtu.edu.ng,parent.olumide@example.com,+2348039012345,ACCOUNTING & FINANCE
+LOVETH,AGBANUGO,IPOLE,22020101036,300,Female,loveth.ipole@mtu.edu.ng,parent.ipole@example.com,+2348050123456,ACCOUNTING & FINANCE
+MIRACLE,ADAEZE,LINUS,23020101041,300,Female,miracle.linus@mtu.edu.ng,parent.linus@example.com,+2348061234567,ACCOUNTING & FINANCE
+SAMUEL,INIOLUWA,ADEOLA,22020601061,300,Male,samuel.adeola@mtu.edu.ng,parent.adeola@example.com,+2348072345678,MASS COMMUNICATION
+ESTHER,CHIZARAM,CHIDI,22010501003,300,Female,esther.chidi@mtu.edu.ng,parent.chidi@example.com,+2348083456789,FOOD SCIENCE & TECH.
+PRAISE,ADEMOBAWA,OMOLOJA,22010501007,300,Female,praise.omoloja@mtu.edu.ng,parent.omoloja@example.com,+2348094567890,FOOD SCIENCE & TECH.
+OLAMIDE,OMOTOLA,OLAWALE,22010501008,300,Female,olamide.olawale@mtu.edu.ng,parent.olawale@example.com,+2348035678901,FOOD SCIENCE & TECH.
+KOFOWOROLA,BAKER,AFOLABI,22020601017,300,Female,kofoworola.afolabi@mtu.edu.ng,parent.afolabi@example.com,+2348056789012,MASS COMMUNICATION
+AYOMIKUN,PROMISE,OMOTOSHO,22020101043,300,Female,ayomikun.omotosho@mtu.edu.ng,parent.omotosho@example.com,+2348067890123,ACCOUNTING & FINANCE
+FAVOUR,ELIZABETH,OLUMIDE,22020601021,300,Female,favour.olumide@mtu.edu.ng,parent.olumide@example.com,+2348078901234,MASS COMMUNICATION
+GLORY,ABIMBOLA,ENIOLORUNDA,22020203002,300,Female,glory.eniolorunda@mtu.edu.ng,parent.eniolorunda@example.com,+2348089012345,PUBLIC ADMINISTRATION
+MARY,ARIKE,OMIDIORA,23020101016,300,Female,mary.omidiora@mtu.edu.ng,parent.omidiora@example.com,+2348090123456,ACCOUNTING & FINANCE
+INIOLUWA,JANET,OLUWADUNKE,22020401011,300,Female,inioluwa.oluwadunke@mtu.edu.ng,parent.oluwadunke@example.com,+2348031234567,LANGUAGES
+ARAOLUWA,OLUWAJOBA,SOMEFUN,22020601024,300,Female,araoluwa.somefun@mtu.edu.ng,parent.somefun@example.com,+2348052345678,MASS COMMUNICATION
+FAITH,OLUWABUKUNMI,AJIBOYE,22020101009,300,Female,faith.ajiboye@mtu.edu.ng,parent.ajiboye@example.com,+2348063456789,ACCOUNTING & FINANCE
+EXCELLENT,AIMANOSI,OMOH,22020601010,300,Male,excellent.omoh@mtu.edu.ng,parent.omoh@example.com,+2348074567890,MASS COMMUNICATION
+TAIWO,,OSUN,23020601056,300,Male,taiwo.osun@mtu.edu.ng,parent.osun@example.com,+2348085678901,MASS COMMUNICATION
+OLUWABUSOLA,PRISCILLA,AYENI,22020101001,300,Female,oluwabusola.ayeni@mtu.edu.ng,parent.ayeni@example.com,+2348096789012,ACCOUNTING & FINANCE
+MARGARET,OLAYINKA,OWOLOLA,22020101016,300,Female,margaret.owolola@mtu.edu.ng,parent.owolola@example.com,+2348037890123,ACCOUNTING & FINANCE
+ESTHER,OLAITAN,AYINBU,22020101010,300,Female,esther.ayinbu@mtu.edu.ng,parent.ayinbu@example.com,+2348058901234,ACCOUNTING & FINANCE
+ELIZABETH,OLAMIDE,ELUOBAJU,23020301020,300,Female,elizabeth.eluobaju@mtu.edu.ng,parent.eluobaju@example.com,+2348069012345,ECONOMICS
+ESTHER,ENIOLA,OGUN,22020101013,300,Female,esther.ogun@mtu.edu.ng,parent.ogun@example.com,+2348070123456,ACCOUNTING & FINANCE
+ISRAEL,AYOMIDE,ADELEYE,22020301007,300,Male,israel.adeleye@mtu.edu.ng,parent.adeleye@example.com,+2348081234567,ECONOMICS
+OLUWAPELUMI,OPEMIPO,ONI,22020201013,300,Female,oluwapelumi.oni@mtu.edu.ng,parent.oni@example.com,+2348092345678,BUSINESS ADMINISTRATION
+DEBORAH,ITUNUOLUWA,OLAJIDE,22020601007,300,Female,deborah.olajide@mtu.edu.ng,parent.olajide@example.com,+2348033456789,MASS COMMUNICATION
+ENIOLA,OPEMIPO,BUSARI,22020202006,300,Female,eniola.busari@mtu.edu.ng,parent.busari@example.com,+2348054567890,BUSINESS ADMINISTRATION
+IBUKUNOLUWA,ANTHONIA,OSIDINA,22020202008,300,Female,ibukunoluwa.osidina@mtu.edu.ng,parent.osidina@example.com,+2348065678901,BUSINESS ADMINISTRATION
+EMMANUEL,UWENNE,WINFUL,22020101034,300,Male,emmanuel.winful@mtu.edu.ng,parent.winful@example.com,+2348076789012,ACCOUNTING & FINANCE
+OLUWATUNMISE,OLULANA,OLUKOGA,22020601096,300,Female,oluwatunmise.olukoga@mtu.edu.ng,parent.olukoga@example.com,+2348087890123,MASS COMMUNICATION
+TAIWO,GOODLUCK,AFOLABI,22020101050,300,Male,taiwo.afolabi@mtu.edu.ng,parent.afolabi@example.com,+2348098901234,ACCOUNTING & FINANCE
+MARVEL,TAIWO,ADELANKE,22020101007,300,Female,marvel.adelanke@mtu.edu.ng,parent.adelanke@example.com,+2348039012345,ACCOUNTING & FINANCE
+DOMINION,TEMILOLUWA,EMMANUEL,22020103002,300,Male,dominion.emmanuel@mtu.edu.ng,parent.emmanuel@example.com,+2348050123456,ACCOUNTING & FINANCE
+OLAMIDE,ESTHER,ADEONIPEKUN,22020201018,300,Female,olamide.adeonipekun@mtu.edu.ng,parent.adeonipekun@example.com,+2348061234567,BUSINESS ADMINISTRATION
+OLAYINKA,ABOSEDE,ADEWALE,23020601104,300,Female,olayinka.adewale@mtu.edu.ng,parent.adewale@example.com,+2348072345678,MASS COMMUNICATION
+OLUWAGBENGA,ISAAC,AWOSANMI,22020101027,300,Male,oluwagbenga.awosanmi@mtu.edu.ng,parent.awosanmi@example.com,+2348083456789,ACCOUNTING & FINANCE
+MARGARET,ENIOLA,AKINOLA,22020101038,300,Female,margaret.akinola@mtu.edu.ng,parent.akinola@example.com,+2348094567890,ACCOUNTING & FINANCE
+JEMIMAH,ONYINYECHI,ROBINSON,23020202004,300,Female,jemimah.robinson@mtu.edu.ng,parent.robinson@example.com,+2348035678901,BUSINESS ADMINISTRATION
+OLAMIDE,ENIOLA,HENRY-IGE,22020101024,300,Female,olamide.henry-ige@mtu.edu.ng,parent.henry-ige@example.com,+2348056789012,ACCOUNTING & FINANCE
+IRESUBOMI,GLORY,ADEDOKUN,22020101042,300,Female,iresubomi.adedokun@mtu.edu.ng,parent.adedokun@example.com,+2348067890123,ACCOUNTING & FINANCE
+EVELYN,AYOMIDE,ADEYEMI,22020101048,300,Female,evelyn.adeyemi@mtu.edu.ng,parent.adeyemi@example.com,+2348078901234,ACCOUNTING & FINANCE
+PEACE,CHINAZA,GABRIEL,22020101025,300,Female,peace.gabriel@mtu.edu.ng,parent.gabriel@example.com,+2348089012345,ACCOUNTING & FINANCE
+MOFEOLUWA,IBUGBEOLA,OSHOWO,22020101039,300,Female,mofeoluwa.oshowo@mtu.edu.ng,parent.oshowo@example.com,+2348090123456,ACCOUNTING & FINANCE
+MARGARET,ONMA,AUDU,22020201005,300,Female,margaret.audu@mtu.edu.ng,parent.audu@example.com,+2348031234567,BUSINESS ADMINISTRATION
+SAMUEL,OLAMILEKAN,OMOTAJE,22020601076,300,Male,samuel.omotaje@mtu.edu.ng,parent.omotaje@example.com,+2348052345678,MASS COMMUNICATION
+FAITH,IFEDAYO,OYENIYI,22020301011,300,Female,faith.oyeniyi@mtu.edu.ng,parent.oyeniyi@example.com,+2348063456789,ECONOMICS
+FAITH,EJODAMEN,OKHUELEIGBE,22020101029,300,Female,faith.okhueleigbe@mtu.edu.ng,parent.okhueleigbe@example.com,+2348074567890,ACCOUNTING & FINANCE
+BLESSING,AYOMIDE,AKINROGBE,22020101031,300,Female,blessing.akinrogbe@mtu.edu.ng,parent.akinrogbe@example.com,+2348085678901,ACCOUNTING & FINANCE
+EMMANUELLA,EMMANUEL,BOBBY-INYANG,22020601064,300,Female,emmanuella.bobby-inyang@mtu.edu.ng,parent.bobby-inyang@example.com,+2348096789012,MASS COMMUNICATION
+AWWAL,KOLAWOLE,ATOLAGBE,22020201006,300,Male,awwal.atolagbe@mtu.edu.ng,parent.atolagbe@example.com,+2348037890123,BUSINESS ADMINISTRATION
+HEPHZIBAH,OLUWASEMILORE,GBEMISOLAOLUWA,22020601015,300,Female,hephzibah.gbemisololuwa@mtu.edu.ng,parent.gbemisololuwa@example.com,+2348058901234,MASS COMMUNICATION
+BOLUWATIFE,REBECCA,BENJAMIN,22020203004,300,Female,boluwatife.benjamin@mtu.edu.ng,parent.benjamin@example.com,+2348069012345,PUBLIC ADMINISTRATION
+ESTHER,OLUWADARASIMI,WHESIN,22020601006,300,Female,esther.whesin@mtu.edu.ng,parent.whesin@example.com,+2348070123456,MASS COMMUNICATION
+ESTHER,TOLULOPE,AYANLAJA,21020301020,300,Female,esther.ayanlaja@mtu.edu.ng,parent.ayanlaja@example.com,+2348081234567,ECONOMICS
+COMFORT,DAN_JUMBO,GILBERT,23020601024,300,Female,comfort.gilbert@mtu.edu.ng,parent.gilbert@example.com,+2348092345678,MASS COMMUNICATION
+SEDIONG,MICHAEL,SYLVANUS,22020101037,300,Male,sediong.sylvanus@mtu.edu.ng,parent.sylvanus@example.com,+2348033456789,ACCOUNTING & FINANCE
+OLUWALAYOMI,JOY,ENIOLA,22020601075,300,Female,oluwalayomi.eniola@mtu.edu.ng,parent.eniola@example.com,+2348054567890,MASS COMMUNICATION
+OREOLUWA,OLUWAYEMISI,AKINOLORUNYOMI,22020601026,300,Female,oreoluwa.akinolorunyomi@mtu.edu.ng,parent.akinolorunyomi@example.com,+2348065678901,MASS COMMUNICATION
+CHISOM,CYNTHIA,ODEZULU,22020601070,300,Female,chisom.odezulu@mtu.edu.ng,parent.odezulu@example.com,+2348076789012,MASS COMMUNICATION
+CHIAMAKA,DEBORAH,CHUKWUMA,22020301021,300,Female,chiamaka.chukwuma@mtu.edu.ng,parent.chukwuma@example.com,+2348087890123,ECONOMICS
+VICTORY,CHUKWUDIEBUBE,ODEGA,22020601078,300,Female,victory.odega@mtu.edu.ng,parent.odega@example.com,+2348098901234,MASS COMMUNICATION
+FATHIA,ENIOLA,BOLARINWA,22020601009,300,Female,fathia.bolarinwa@mtu.edu.ng,parent.bolarinwa@example.com,+2348039012345,MASS COMMUNICATION
+AMARACHI,TESTIMONY,APOLLOS,22020601008,300,Female,amarachi.apollos@mtu.edu.ng,parent.apollos@example.com,+2348050123456,MASS COMMUNICATION
+TOMILOLA,IBUKUNOLUWA,OSATIMEHIN,23020201021,300,Female,tomilola.osatimehin@mtu.edu.ng,parent.osatimehin@example.com,+2348061234567,BUSINESS ADMINISTRATION
+GOODNESS,ELOGHENE,OMADOMEH,22020401013,300,Female,goodness.omadomeh@mtu.edu.ng,parent.omadomeh@example.com,+2348072345678,LANGUAGES
+OLAWALE,MARTINS,ABIMBOLA,22020101005,300,Male,olawale.abimbola@mtu.edu.ng,parent.abimbola@example.com,+2348083456789,ACCOUNTING & FINANCE
+ABRAHAM,TOLUWANI,VAUGHAN,22020101040,300,Male,abraham.vaughan@mtu.edu.ng,parent.vaughan@example.com,+2348094567890,ACCOUNTING & FINANCE
+OLUWASEMILORE,COMFORT,MOSES,22020501002,300,Female,oluwasemilore.moses@mtu.edu.ng,parent.moses@example.com,+2348035678901,PHILOSOPHY & RELIGION

@@ -7,7 +7,8 @@ import { levelSchema } from '@/lib/validation/levels.schema';
 import { Level } from '@/lib/types/index';
 import { handleError, logError } from '@/utils/ErrorHandler';
 import { useToastExt } from './useToastExt';
-import { getCurrentUser } from '@/services/authService';
+import { getCurrentUser } from '@/lib/auth';
+import { api } from '@/lib/requestFactory';
 
 export function useLevels() {
   const { error: showError } = useToastExt();
@@ -16,23 +17,12 @@ export function useLevels() {
     queryKey: ['levels'],
     queryFn: async (): Promise<Level[]> => {
       try {
-        // Include auth context for admin-specific data
         const user = await getCurrentUser();
         
-        const response = await fetch('/api/levels', {
-          headers: {
-            'Content-Type': 'application/json',
-            // TODO: Add auth headers when real API is implemented
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch levels: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        // API returns array directly
+        const data = await api.get<Level[]>('/api/levels');
         
-        // Validate response using Zod schema
+        // Validate the array directly
         const validationResult = levelSchema.array().safeParse(data);
         
         if (!validationResult.success) {
@@ -48,6 +38,12 @@ export function useLevels() {
 
         return validationResult.data;
       } catch (error) {
+        // Handle 404 or missing API endpoint gracefully
+        if (error instanceof Error && error.message.includes('404')) {
+          console.warn('Levels API endpoint not yet implemented, returning empty array');
+          return [];
+        }
+        
         const { message } = handleError(error, { 
           component: 'useLevels',
           action: 'fetchLevels' 
@@ -57,7 +53,7 @@ export function useLevels() {
       }
     },
     staleTime: 30 * 60 * 1000, // 30 minutes (levels rarely change)
-    retry: 3,
+    retry: 1, // Reduce retries since API might not exist yet
   });
 
   const getAllLevels = async (): Promise<Level[]> => {

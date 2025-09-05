@@ -258,7 +258,10 @@ function ServiceCard({ service }: { service: Service }) {
                 service.type.charAt(0).toUpperCase() + service.type.slice(1)}{' '}
             Service
             </CardTitle>
-            <Badge className={cn('capitalize', statusColors[service.status])}>
+            <Badge className={cn(
+                'capitalize',
+                statusColors[service.status as keyof typeof statusColors] || ''
+            )}>
                 {service.status}
             </Badge>
         </div>

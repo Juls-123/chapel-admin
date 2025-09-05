@@ -28,11 +28,16 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { admins as initialAdmins, currentAdmin } from '@/lib/mock-data';
+import { currentAdmin } from '@/lib/mock-data';
 import { AdminTable } from './data-table';
-import { useToast } from '@/hooks/use-toast';
+import { useAdmins } from '@/hooks/useAdmins';
+import { useAdminActions } from '@/hooks/useAdminActions';
+import { UIStateWrapper } from '@/components/ui-states/UIStateWrapper';
 import type { Admin } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 
 
 const adminFormSchema = z.object({
@@ -47,10 +52,28 @@ type AdminFormValues = z.infer<typeof adminFormSchema>;
 
 
 export default function AdminManagementPage() {
-    const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
     const [open, setOpen] = useState(false);
     const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
-    const { toast } = useToast();
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    
+    const { 
+        data: admins, 
+        pagination,
+        isLoading, 
+        error, 
+        refetch,
+        createAdmin, 
+        updateAdmin, 
+        deleteAdmin,
+        promoteAdmin,
+        isCreating,
+        isUpdating,
+        isDeleting,
+        isPromoting
+    } = useAdmins({ page, search, limit: 10 });
+    
+    const { adminActions, isLoading: isLoadingActions, error: actionsError } = useAdminActions(20, 0);
     
     const isSuperAdmin = currentAdmin.role === 'superadmin';
 
@@ -76,21 +99,25 @@ export default function AdminManagementPage() {
 
     const onSubmit = (data: AdminFormValues) => {
         if (editingAdmin) {
-            // Update admin logic
-            console.log("Updating admin:", { ...editingAdmin, ...data });
-            toast({
-                title: "Admin Updated",
-                description: "The admin's details have been updated.",
-            });
+            updateAdmin({ id: editingAdmin.id, data });
         } else {
-            // Add new admin logic
-            console.log("Creating admin:", data);
-            toast({
-                title: "Admin Added",
-                description: "The new admin has been successfully created.",
-            });
+            createAdmin(data);
         }
         setOpen(false);
+        form.reset();
+    };
+    
+    const handleDelete = (admin: Admin) => {
+        if (confirm(`Are you sure you want to delete ${admin.first_name} ${admin.last_name}?`)) {
+            deleteAdmin(admin.id);
+        }
+    };
+    
+    const handlePromote = (admin: Admin) => {
+        if (admin.role === 'superadmin') {
+            return; // Already handled in the table component
+        }
+        promoteAdmin(admin.id);
     };
     
   return (
@@ -146,7 +173,20 @@ export default function AdminManagementPage() {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="submit">{editingAdmin ? 'Save Changes' : 'Add Admin'}</Button>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setOpen(false)}
+                                disabled={isCreating || isUpdating}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={isCreating || isUpdating}
+                            >
+                                {isCreating || isUpdating ? 'Saving...' : (editingAdmin ? 'Save Changes' : 'Add Admin')}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -154,7 +194,74 @@ export default function AdminManagementPage() {
         </Dialog>
       </PageHeader>
       <div className="grid gap-6">
-        <AdminTable data={admins} onEdit={handleOpenDialog} isSuperAdmin={isSuperAdmin} />
+        <UIStateWrapper
+          isLoading={isLoading}
+          error={error}
+          data={admins}
+          emptyTitle="No admins found"
+          emptyMessage="No administrators have been created yet."
+          emptyActionLabel="Add First Admin"
+          onEmptyAction={() => handleOpenDialog()}
+          onRetry={refetch}
+        >
+          <AdminTable 
+            data={admins} 
+            onEdit={handleOpenDialog} 
+            onDelete={handleDelete}
+            onPromote={handlePromote}
+            isSuperAdmin={isSuperAdmin}
+            isDeleting={isDeleting}
+            isPromoting={isPromoting}
+          />
+        </UIStateWrapper>
+
+        {/* Audit Logs Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Admin Actions</CardTitle>
+            <CardDescription>
+              Track recent administrative actions and changes made by admins.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UIStateWrapper
+              isLoading={isLoadingActions}
+              error={actionsError}
+              data={adminActions}
+              emptyTitle="No recent actions"
+              emptyMessage="No administrative actions have been logged yet."
+              onRetry={() => {}}
+            >
+              <div className="space-y-3">
+                {adminActions.map((action) => (
+                  <div
+                    key={action.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">
+                          {action.action}
+                        </Badge>
+                        {action.object_type && (
+                          <span className="text-sm text-muted-foreground">
+                            {action.object_type}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium">
+                        {action.object_label || 'System Action'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        by {action.admin_name} • {formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </UIStateWrapper>
+          </CardContent>
+        </Card>
       </div>
     </AppShell>
   );

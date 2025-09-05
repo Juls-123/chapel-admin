@@ -1,15 +1,20 @@
 export interface Student {
-  level_id: string;
   id: string;
   matric_number: string;
   first_name: string;
-  middle_name: string;
+  middle_name?: string;
   last_name: string;
+  full_name: string;
   email: string;
-  parents_email: string;
-  status: 'active' | 'paused';
+  parent_email: string;
+  parent_phone: string;
+  gender: 'male' | 'female';
+  department: string;
   level: number;
-  parents_phone_number: string;
+  level_name?: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Service {
@@ -18,7 +23,7 @@ export interface Service {
   date: Date;
   type: 'morning' | 'evening' | 'special';
   name?: string; // for special services
-  status: 'active' | 'cancelled' | 'completed' | 'upcoming';
+  status: 'active' | 'canceled' | 'completed' ;
   created_by: string;
   created_at: Date;
   applicable_levels?: number[];
@@ -27,14 +32,17 @@ export interface Service {
 
 export interface Exeat {
   id: string;
+  student_id: string;
   matric_number: string;
   student_name: string;
-  start_date: Date;
-  end_date: Date;
+  start_date: string;
+  end_date: string;
   reason?: string;
-  status: 'active' | 'past' | 'upcoming';
-  approved_by: string;
-  created_at: Date;
+  status: 'active' | 'ended' | 'canceled';
+  created_by: string;
+  created_at: string;
+  duration_days?: number;
+  derived_status?: 'active' | 'ended' | 'canceled' | 'upcoming' | 'past';
 }
 
 export interface ManualClear {
@@ -62,8 +70,21 @@ export interface WarningLetterSummary {
   student_name: string;
   week_start: Date;
   miss_count: number;
-  missed_service_dates: Date[];
-  status: 'pending' | 'sent' | 'failed';
+  status: 'none' | 'pending' | 'sent';
+  first_created_at?: string;
+  last_updated_at?: string;
+  sent_at?: string;
+  sent_by?: string;
+  student_details: {
+    id: string;
+    email?: string;
+    parent_email?: string;
+    parent_phone?: string;
+    gender?: string;
+    department?: string;
+    level?: number;
+    level_name?: string;
+  };
 }
 
 export interface RecentAction {
@@ -80,12 +101,14 @@ export type StudentWithRecords = Student & {
 };
 
 export interface Admin {
-  id:string;
+  id: string;
   first_name: string;
-  middle_name: string;
+  middle_name?: string;
   last_name: string;
   email: string;
   role: 'superadmin' | 'admin';
+  created_at: string;
+  auth_user_id?: string;
 }
 
 export interface ManualClearReason {
@@ -101,4 +124,13 @@ export interface ServiceConstraint {
   description: string;
   created_by: string;
   created_at: Date;
+}
+
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+  total: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }

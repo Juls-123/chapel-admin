@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -9,15 +8,15 @@ import {
   UserX,
   MailWarning,
   ChevronRight,
-  User,
   Users,
   Shield,
   ClipboardCheck,
   Settings,
-} from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+  User as UserIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ReactNode, useEffect, useState, useMemo } from "react";
 
 import {
   SidebarProvider,
@@ -33,32 +32,104 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Button } from './ui/button';
-import { Separator } from './ui/separator';
+} from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
+import { AccountSwitcher } from "./AccountSwitcher";
+
+import { getCurrentUser } from "@/lib/auth"; // ✅ async
+
+// Define type so TS knows what to expect
+type User = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+};
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/services', label: 'Services', icon: CalendarCheck },
-  { href: '/students', label: 'Students', icon: Users },
-  { href: '/exeats', label: 'Exeat Manager', icon: UserMinus },
-  { href: '/attendance', label: 'Attendance Upload', icon: FileUp },
-  { href: '/manual-clear', label: 'Manual Clear', icon: ClipboardCheck },
-  { href: '/absentees', label: 'Absentees', icon: UserX },
-  { href: '/warnings', label: 'Warning Letters', icon: MailWarning },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/services", label: "Services", icon: CalendarCheck },
+  { href: "/students", label: "Students", icon: Users },
+  { href: "/exeats", label: "Exeat Manager", icon: UserMinus },
+  { href: "/attendance", label: "Attendance Upload", icon: FileUp },
+  { href: "/manual-clear", label: "Manual Clear", icon: ClipboardCheck },
+  { href: "/absentees", label: "Absentees", icon: UserX },
+  { href: "/warnings", label: "Warning Letters", icon: MailWarning },
 ];
 
 const settingsItems = [
-    { href: '/admins', label: 'Admins', icon: Shield },
-    { href: '/definitions', label: 'Definitions', icon: Settings },
-]
+  { href: "/admins", label: "Admins", icon: Shield },
+  { href: "/definitions", label: "Definitions", icon: Settings },
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+  const [accountSwitcherOpen, setAccountSwitcherOpen] = useState(false);
+
+  // ✅ Fetch async user once on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      const u = await getCurrentUser();
+      setUser(u);
+    };
+    fetchUser();
+  }, []);
+
+  // Memoize active states to prevent infinite re-renders
+  const activeStates = useMemo(() => {
+    const navStates = navItems.reduce((acc, item) => {
+      acc[item.href] = pathname.startsWith(item.href) && 
+                      (item.href === "/" ? pathname === "/" : true);
+      return acc;
+    }, {} as Record<string, boolean>);
+    
+    const settingsStates = settingsItems.reduce((acc, item) => {
+      acc[item.href] = pathname.startsWith(item.href);
+      return acc;
+    }, {} as Record<string, boolean>);
+    
+    return { ...navStates, ...settingsStates };
+  }, [pathname]);
+
+  // Memoize tooltip objects to prevent infinite re-renders
+  const tooltipObjects = useMemo(() => {
+    return navItems.reduce((acc, item) => {
+      acc[item.href] = { children: item.label, side: "right" as const };
+      return acc;
+    }, {} as Record<string, { children: string; side: "right" }>);
+  }, []);
+
+  // Memoize icon components to prevent infinite re-renders
+  const iconComponents = useMemo(() => {
+    return navItems.reduce((acc, item) => {
+      acc[item.href] = <item.icon />;
+      return acc;
+    }, {} as Record<string, JSX.Element>);
+  }, []);
+
+  // Memoize settings tooltips and icons
+  const settingsTooltips = useMemo(() => {
+    return settingsItems.reduce((acc, item) => {
+      acc[item.href] = { children: item.label, side: "right" as const };
+      return acc;
+    }, {} as Record<string, { children: string; side: "right" }>);
+  }, []);
+
+  const settingsIcons = useMemo(() => {
+    return settingsItems.reduce((acc, item) => {
+      acc[item.href] = <item.icon />;
+      return acc;
+    }, {} as Record<string, JSX.Element>);
+  }, []);
+
+  const getDisplayName = () => {
+    if (user?.firstName || user?.lastName) {
+      return `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    }
+    return user?.email?.split("@")[0] || "User";
+  };
 
   return (
     <SidebarProvider>
@@ -66,19 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 text-primary-foreground"
-              >
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-                <line x1="4" y1="22" x2="4" y2="15"></line>
-              </svg>
+              <UserIcon className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-semibold">Chapel Admin</span>
           </div>
@@ -89,9 +148,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href) && (item.href === '/' ? pathname === '/' : true)}
-                    icon={<item.icon />}
-                    tooltip={{ children: item.label, side: 'right' }}
+                    isActive={activeStates[item.href]}
+                    icon={iconComponents[item.href]}
+                    tooltip={tooltipObjects[item.href]}
                   >
                     <span>{item.label}</span>
                   </SidebarMenuButton>
@@ -99,22 +158,33 @@ export function AppShell({ children }: { children: ReactNode }) {
               </SidebarMenuItem>
             ))}
             <SidebarGroup>
-                <SidebarGroupLabel>Settings</SidebarGroupLabel>
-                <SidebarGroupContent>
-                     {settingsItems.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                            <Link href={item.href}>
-                            <SidebarMenuButton
-                                isActive={pathname.startsWith(item.href)}
-                                icon={<item.icon />}
-                                tooltip={{ children: item.label, side: 'right' }}
-                            >
-                                <span>{item.label}</span>
-                            </SidebarMenuButton>
-                            </Link>
-                        </SidebarMenuItem>
-                    ))}
-                </SidebarGroupContent>
+              <SidebarGroupLabel>Settings</SidebarGroupLabel>
+              <SidebarGroupContent>
+                {settingsItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <Link href={item.href}>
+                      <SidebarMenuButton
+                        isActive={activeStates[item.href]}
+                        icon={settingsIcons[item.href]}
+                        tooltip={settingsTooltips[item.href]}
+                      >
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                ))}
+                {process.env.NODE_ENV === 'development' && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => setAccountSwitcherOpen(true)}
+                      icon={<UserIcon />}
+                      tooltip={{ children: "Switch Account", side: "right" }}
+                    >
+                      <span>Switch Account</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </SidebarGroupContent>
             </SidebarGroup>
           </SidebarMenu>
         </SidebarContent>
@@ -122,19 +192,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Separator className="my-2" />
           <Link href="/profile">
             <div className="flex items-center justify-between p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                    <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="admin user" />
-                    <AvatarFallback>A</AvatarFallback>
+                  <AvatarFallback>
+                    {user?.firstName?.[0] || user?.email?.[0] || "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col text-sm">
-                    <span className="font-semibold">Admin User</span>
-                    <span className="text-muted-foreground">admin@chapel.co</span>
+                  <span className="font-semibold">{getDisplayName()}</span>
+                  <span className="text-muted-foreground">{user?.email}</span>
                 </div>
-                </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
                 <ChevronRight className="h-4 w-4" />
-                </Button>
+              </Button>
             </div>
           </Link>
         </SidebarFooter>
@@ -148,6 +219,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className="p-4 md:p-6">{children}</main>
       </SidebarInset>
+      
+      <AccountSwitcher 
+        open={accountSwitcherOpen} 
+        onOpenChange={setAccountSwitcherOpen}
+      />
     </SidebarProvider>
   );
 }

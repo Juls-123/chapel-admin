@@ -1,69 +1,105 @@
-// Read-only hook for fetching semesters data
-// NOTE: This file is swap-ready for production Supabase Auth — replace with Supabase wrapper only. Do not change callsites.
-// PHASE 2: Replace src/services/authService.ts with Supabase wrapper - no other changes to callsites required.
-
-import { useQuery } from '@tanstack/react-query';
-import { semesterSchema } from '@/lib/validation/semesters.schema';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Semester } from '@/lib/types/index';
-import { handleError, logError } from '@/utils/ErrorHandler';
 import { useToastExt } from './useToastExt';
-import { getCurrentUser } from '@/services/authService';
+import { api } from '@/lib/requestFactory';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface CreateSemesterData {
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+interface UpdateSemesterData {
+  name?: string;
+  start_date?: string;
+  end_date?: string;
+}
 
 export function useSemesters() {
-  const { error: showError } = useToastExt();
+  const { success: showSuccess, error: showError } = useToastExt();
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('semesters-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'semesters'
+      }, (payload) => {
+        queryClient.invalidateQueries({ queryKey: ['semesters'] });
+        
+        // Show toast notifications for realtime changes
+        if (payload.eventType === 'INSERT') {
+          showSuccess('Semester Added', `New semester "${(payload.new as any)?.name || 'Unknown'}" has been created.`);
+        } else if (payload.eventType === 'UPDATE') {
+          showSuccess('Semester Updated', `Semester "${(payload.new as any)?.name || 'Unknown'}" has been updated.`);
+        } else if (payload.eventType === 'DELETE') {
+          showSuccess('Semester Deleted', `A semester has been deleted.`);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, showSuccess]);
 
   const query = useQuery({
     queryKey: ['semesters'],
     queryFn: async (): Promise<Semester[]> => {
-      try {
-        // Include auth context for admin-specific data
-        const user = await getCurrentUser();
-        
-        const response = await fetch('/api/semesters', {
-          headers: {
-            'Content-Type': 'application/json',
-            // TODO: Add auth headers when real API is implemented
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch semesters: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        // Validate response using Zod schema
-        const validationResult = semesterSchema.array().safeParse(data);
-        
-        if (!validationResult.success) {
-          const error = new Error('Semester data validation failed');
-          logError(error, { 
-            component: 'useSemesters',
-            validationErrors: validationResult.error.errors,
-            userId: user?.id 
-          });
-          showError('Data validation failed', 'Semester data format is invalid');
-          throw error;
-        }
-
-        return validationResult.data;
-      } catch (error) {
-        // Handle 404 or missing API endpoint gracefully
-        if (error instanceof Error && error.message.includes('404')) {
-          console.warn('Semesters API endpoint not yet implemented, returning empty array');
-          return [];
-        }
-        
-        const { message } = handleError(error, { 
-          component: 'useSemesters',
-          action: 'fetchSemesters' 
-        });
-        showError('Failed to load semesters', message);
-        throw error;
-      }
+      const data = await api.get<Semester[]>('/api/semesters');
+      return data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes (semesters change infrequently)
-    retry: 1, // Reduce retries since API might not exist yet
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  // Create semester mutation
+  const createMutation = useMutation({
+    mutationFn: async (semesterData: CreateSemesterData) => {
+      return await api.post<Semester>('/api/semesters', semesterData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['semesters'] });
+    },
+    onError: (error: any) => {
+      showError('Failed to create semester', error.message || 'Please try again.');
+    },
+  });
+
+  // Update semester mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: UpdateSemesterData & { id: string }) => {
+      return await api.put<Semester>(`/api/semesters/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['semesters'] });
+    },
+    onError: (error: any) => {
+      showError('Failed to update semester', error.message || 'Please try again.');
+    },
+  });
+
+  // Delete semester mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await api.delete(`/api/semesters/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['semesters'] });
+    },
+    onError: (error: any) => {
+      showError('Failed to delete semester', error.message || 'Please try again.');
+    },
   });
 
   const getAllSemesters = async (): Promise<Semester[]> => {
@@ -98,11 +134,23 @@ export function useSemesters() {
   };
 
   return {
+    // Data and query state
     data: query.data || [],
+    semesters: query.data || [],
     error: query.error,
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
+    
+    // Mutations
+    createSemester: createMutation.mutate,
+    updateSemester: updateMutation.mutate,
+    deleteSemester: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    
+    // Helper functions
     getAllSemesters,
     getSemesterById,
     getCurrentSemester,

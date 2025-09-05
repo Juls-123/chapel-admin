@@ -35,25 +35,21 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { services as initialServices, serviceConstraints } from '@/lib/mock-data';
+import { serviceConstraints } from '@/lib/mock-data';
 import { ServiceTable } from './data-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useServices, CreateServiceData } from '@/hooks/useServices';
+import { useLevels } from '@/hooks/useLevels';
 import type { Service } from '@/lib/types';
 
-const levels = [
-    { id: 100, label: '100 Level' },
-    { id: 200, label: '200 Level' },
-    { id: 300, label: '300 Level' },
-    { id: 400, label: '400 Level' },
-    { id: 500, label: '500 Level' },
-];
+// Remove hardcoded levels - use database levels instead
 
 const serviceFormSchema = z.object({
   type: z.enum(['morning', 'evening', 'special'], { required_error: 'Please select a service type.' }),
   name: z.string().optional(),
   date: z.date({ required_error: 'A service date is required.' }),
-  applicable_levels: z.array(z.number()).optional(),
+  applicable_levels: z.array(z.string()).optional(),
   constraint: z.string().optional(),
 }).refine((data) => {
     if (data.type === 'special') {
@@ -76,10 +72,38 @@ const serviceFormSchema = z.object({
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
 
 export default function ServiceManagementPage() {
-    const [services, setServices] = useState<Service[]>(initialServices);
+    const [page, setPage] = useState(1);
     const [open, setOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
     const { toast } = useToast();
+    
+    const { 
+        services, 
+        pagination, 
+        isLoading, 
+        error, 
+        refetch,
+        createService, 
+        isCreating,
+        updateService,
+        isUpdating,
+        performAction,
+        isPerformingAction
+    } = useServices({ page, limit: 10 });
+
+    // Debug logging for services data
+    console.log('🔍 Services page debug:');
+    console.log('- isLoading:', isLoading);
+    console.log('- error:', error);
+    console.log('- services:', services);
+    console.log('- services length:', services?.length);
+    console.log('- pagination:', pagination);
+
+    const { 
+        data: dbLevels, 
+        isLoading: levelsLoading, 
+        error: levelsError 
+    } = useLevels();
     
     const form = useForm<ServiceFormValues>({
         resolver: zodResolver(serviceFormSchema),
@@ -97,7 +121,7 @@ export default function ServiceManagementPage() {
                 type: editingService.type,
                 name: editingService.name || '',
                 date: new Date(editingService.date),
-                applicable_levels: editingService.applicable_levels || [],
+                applicable_levels: editingService.applicable_levels?.map(String) || [],
                 constraint: editingService.constraint || 'none',
             });
         } else {
@@ -114,19 +138,20 @@ export default function ServiceManagementPage() {
     const serviceType = form.watch('type');
 
     function onSubmit(data: ServiceFormValues) {
+        const serviceData: CreateServiceData = {
+            type: data.type,
+            name: data.name,
+            service_date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+            applicable_levels: data.applicable_levels?.map(String) || [], // Convert to strings
+            constraints: data.constraint !== 'none' ? { type: data.constraint } : undefined,
+        };
+
         if (editingService) {
-            console.log("Updating service:", { ...editingService, ...data });
-            toast({
-                title: "Service Updated",
-                description: "The service has been successfully updated.",
-            });
+            updateService({ id: editingService.id, data: serviceData });
         } else {
-            console.log("Creating service:", data);
-            toast({
-                title: "Service Created",
-                description: "The new service has been successfully scheduled.",
-            });
+            createService(serviceData);
         }
+        
         setOpen(false);
         setEditingService(null);
         form.reset();
@@ -144,11 +169,11 @@ export default function ServiceManagementPage() {
     }
 
     const handleStatusChange = (serviceId: string, status: Service['status']) => {
-        setServices(prevServices => 
-            prevServices.map(service => 
-                service.id === serviceId ? { ...service, status } : service
-            )
-        );
+        if (status === 'completed') {
+            performAction({ id: serviceId, action: { action: 'complete' } });
+        } else if (status === 'canceled') {
+            performAction({ id: serviceId, action: { action: 'cancel' } });
+        }
     };
 
   return (
@@ -282,7 +307,7 @@ export default function ServiceManagementPage() {
                                             </FormDescription>
                                         </div>
                                         <div className="flex flex-wrap gap-4">
-                                            {levels.map((item) => (
+                                            {dbLevels?.map((item) => (
                                                 <FormField
                                                     key={item.id}
                                                     control={form.control}
@@ -295,20 +320,20 @@ export default function ServiceManagementPage() {
                                                         >
                                                             <FormControl>
                                                             <Checkbox
-                                                                checked={field.value?.includes(item.id)}
+                                                                checked={field.value?.includes(item.code)}
                                                                 onCheckedChange={(checked) => {
                                                                 return checked
-                                                                    ? field.onChange([...(field.value || []), item.id])
+                                                                    ? field.onChange([...(field.value || []), item.code])
                                                                     : field.onChange(
                                                                         field.value?.filter(
-                                                                        (value) => value !== item.id
+                                                                        (value) => value !== item.code
                                                                         )
                                                                     )
                                                                 }}
                                                             />
                                                             </FormControl>
                                                             <FormLabel className="font-normal">
-                                                                {item.label}
+                                                                {item.name || `${item.code} Level`}
                                                             </FormLabel>
                                                         </FormItem>
                                                         )
@@ -356,9 +381,12 @@ export default function ServiceManagementPage() {
             </DialogContent>
         </Dialog>
 
-      <div className="grid gap-6">
-        <ServiceTable data={services} onEdit={handleEdit} onStatusChange={handleStatusChange} />
-      </div>
+      <ServiceTable 
+        data={services} 
+        onEdit={handleEdit} 
+        onStatusChange={handleStatusChange} 
+        onRefresh={refetch}
+      />
     </AppShell>
   );
 }

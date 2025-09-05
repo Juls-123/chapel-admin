@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { getAuthHeaders } from '@/lib/auth';
 import {
   flexRender,
   getCoreRowModel,
@@ -46,15 +47,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import type { Service } from '@/lib/types';
-import { attendanceRecords } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useDeleteService } from '@/hooks/useServices';
 
 type ServiceTableProps = {
     data: Service[];
     onEdit: (service: Service) => void;
     onStatusChange: (serviceId: string, status: Service['status']) => void;
+    onRefresh?: () => void;
 };
 
 const downloadCSV = (data: any[], filename: string) => {
@@ -80,27 +82,52 @@ const downloadCSV = (data: any[], filename: string) => {
     document.body.removeChild(a);
 }
 
-const handleDownloadAttendance = (serviceId: string, serviceName: string) => {
-    const records = attendanceRecords.filter(r => r.service_id === serviceId);
-    if(records.length > 0) {
-        downloadCSV(records, `${serviceName}_attendance.csv`);
-    } else {
-        alert('No attendance records found for this service.');
+const handleDownloadAttendance = async (serviceId: string, serviceName: string) => {
+    try {
+        const response = await fetch(`/api/services/${serviceId}/actions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(await getAuthHeaders()),
+            },
+            body: JSON.stringify({
+                action: 'export_attendance',
+                data: { export_format: 'csv' }
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result?.data) {
+                downloadCSV(result.data, result.filename || `${serviceName}_attendance.csv`);
+            }
+        }
+    } catch (error) {
+        console.error('Export failed:', error);
     }
 };
 
-export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps) {
+export function ServiceTable({ data, onEdit, onStatusChange, onRefresh }: ServiceTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
+  const deleteService = useDeleteService();
 
   const handleCompleteService = (service: Service) => {
     onStatusChange(service.id, 'completed');
     toast({
       title: 'Service Completed',
-      description: `${service.name || service.type} has been marked as completed.`
-    })
-  }
+      description: `${service.name || service.type} service has been marked as completed.`,
+    });
+  };
+
+  const handleCancelService = (service: Service) => {
+    onStatusChange(service.id, 'canceled');
+    toast({
+      title: 'Service Canceled',
+      description: `${service.name || service.type} service has been canceled.`,
+    });
+  };
 
   const columns: ColumnDef<Service>[] = [
     {
@@ -145,14 +172,20 @@ export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps
       cell: ({ row }) => {
           const status = row.getValue('status') as Service['status'];
           const statusConfig = {
-              upcoming: { label: "Upcoming", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" },
+              scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" },
               active: { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" },
               completed: { label: "Completed", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300" },
-              cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" },
+              canceled: { label: "Canceled", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" },
           }
+          
+          const config = statusConfig[status] || { 
+              label: status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown', 
+              color: "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300" 
+          };
+          
           return (
-              <Badge variant="outline" className={cn("border-0 capitalize", statusConfig[status].color)}>
-                  {statusConfig[status].label}
+              <Badge variant="outline" className={cn("border-0 capitalize", config.color)}>
+                  {config.label}
               </Badge>
           )
       }
@@ -193,8 +226,12 @@ export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps
                     Export Attendance
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                  Cancel Service
+                  <DropdownMenuItem 
+                    onClick={() => handleCancelService(service)}
+                    disabled={service.status === 'completed' || service.status === 'canceled'}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    Cancel Service
                   </DropdownMenuItem>
               </DropdownMenuContent>
               </DropdownMenu>
@@ -239,12 +276,17 @@ export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="canceled">Canceled</SelectItem>
                 </SelectContent>
             </Select>
+            {onRefresh && (
+              <Button variant="outline" onClick={onRefresh}>
+                Refresh
+              </Button>
+            )}
             <Popover>
                 <PopoverTrigger asChild>
                 <Button
@@ -291,7 +333,7 @@ export function ServiceTable({ data, onEdit, onStatusChange }: ServiceTableProps
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {table.getRowModel()?.rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}

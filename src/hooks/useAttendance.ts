@@ -7,7 +7,8 @@ import { vwStudentProfileAttendanceSchema } from '@/lib/validation/vw_student_pr
 import { VwStudentProfileAttendance } from '@/lib/types/index';
 import { handleError, logError } from '@/utils/ErrorHandler';
 import { useToastExt } from './useToastExt';
-import { getCurrentUser } from '@/services/authService';
+import { getCurrentUser } from '@/lib/auth';
+import { api } from '@/lib/requestFactory';
 
 export function useAttendance(studentId?: string) {
   const { error: showError } = useToastExt();
@@ -23,18 +24,7 @@ export function useAttendance(studentId?: string) {
         // Include auth context for admin-specific data
         const user = await getCurrentUser();
         
-        const response = await fetch(`/api/students/${studentId}/attendance`, {
-          headers: {
-            'Content-Type': 'application/json',
-            // TODO: Add auth headers when real API is implemented
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch attendance: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await api.get<VwStudentProfileAttendance[]>(`/api/students/${studentId}/attendance`);
         
         // Validate response using Zod schema
         const validationResult = vwStudentProfileAttendanceSchema.array().safeParse(data);
@@ -53,6 +43,12 @@ export function useAttendance(studentId?: string) {
 
         return validationResult.data;
       } catch (error) {
+        // Handle 404 or missing API endpoint gracefully
+        if (error instanceof Error && error.message.includes('404')) {
+          console.warn('Attendance API endpoint not yet implemented, returning empty array');
+          return [];
+        }
+        
         const { message } = handleError(error, { 
           component: 'useAttendance',
           action: 'fetchAttendance',
@@ -64,7 +60,7 @@ export function useAttendance(studentId?: string) {
     },
     enabled: !!studentId, // Only run query if studentId is provided
     staleTime: 2 * 60 * 1000, // 2 minutes
-    retry: 3,
+    retry: 1, // Reduce retries since API might not exist yet
   });
 
   const getAttendanceByService = (serviceId: string): VwStudentProfileAttendance | undefined => {

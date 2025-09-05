@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
 
 import { AppShell } from '@/components/AppShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -22,33 +22,36 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  manualClearReasons as initialReasons,
-  serviceConstraints as initialConstraints,
-  currentAdmin,
-} from '@/lib/mock-data';
-import type { ManualClearReason, ServiceConstraint } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SemesterManagement } from '@/components/SemesterManagement';
+import { useOverrideReasons } from '@/hooks/useOverrideReasons';
+import { useServiceConstraints } from '@/hooks/useServiceConstraints';
 
 export default function DefinitionsPage() {
-  const [reasons, setReasons] = useState<ManualClearReason[]>(initialReasons);
-  const [constraints, setConstraints] = useState<ServiceConstraint[]>(initialConstraints);
+  const { 
+    overrideReasons, 
+    isLoading: reasonsLoading, 
+    createOverrideReason, 
+    deleteOverrideReason,
+    isCreating: creatingReason,
+    isDeleting: deletingReason
+  } = useOverrideReasons();
+  
+  const { 
+    serviceConstraints, 
+    isLoading: constraintsLoading, 
+    createServiceConstraint, 
+    deleteServiceConstraint,
+    isCreating: creatingConstraint,
+    isDeleting: deletingConstraint
+  } = useServiceConstraints();
+
   const [open, setOpen] = useState(false);
   const [definitionType, setDefinitionType] = useState<'reason' | 'constraint' | null>(null);
-  const { toast } = useToast();
 
   const handleAddDefinition = (type: 'reason' | 'constraint') => {
     setDefinitionType(type);
@@ -60,18 +63,45 @@ export default function DefinitionsPage() {
     const formData = new FormData(event.currentTarget);
     
     if (definitionType === 'reason') {
-      const newReason = formData.get('reason') as string;
-      console.log("Adding new reason:", newReason);
-      toast({ title: "Reason Added", description: `"${newReason}" has been added.` });
+      const code = formData.get('code') as string;
+      const displayName = formData.get('display_name') as string;
+      const description = formData.get('description') as string;
+      const requiresNote = formData.get('requires_note') === 'on';
+      
+      createOverrideReason({
+        code,
+        display_name: displayName,
+        description: description || undefined,
+        requires_note: requiresNote,
+      });
     } else if (definitionType === 'constraint') {
-      const newName = formData.get('name') as string;
-      const newDescription = formData.get('description') as string;
-      console.log("Adding new constraint:", { name: newName, description: newDescription });
-      toast({ title: "Constraint Added", description: `"${newName}" has been added.` });
+      const name = formData.get('name') as string;
+      const description = formData.get('description') as string;
+      const constraintRule = formData.get('constraint_rule') as string;
+      
+      try {
+        const parsedRule = JSON.parse(constraintRule || '{}');
+        createServiceConstraint({
+          name,
+          description: description || undefined,
+          constraint_rule: parsedRule,
+        });
+      } catch (error) {
+        console.error('Invalid constraint rule JSON:', error);
+        return;
+      }
     }
     
     setOpen(false);
     setDefinitionType(null);
+  };
+
+  const handleDeleteReason = (id: string) => {
+    deleteOverrideReason(id);
+  };
+
+  const handleDeleteConstraint = (id: string) => {
+    deleteServiceConstraint(id);
   };
 
   return (
@@ -101,28 +131,64 @@ export default function DefinitionsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Added By</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reasons.map((reason) => (
-                  <TableRow key={reason.id}>
-                    <TableCell className="font-medium">{reason.reason}</TableCell>
-                    <TableCell>{reason.created_by}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            {reasonsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reason</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Added By</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {overrideReasons.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No override reasons found. Add one to get started.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    overrideReasons.map((reason) => (
+                      <TableRow key={reason.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{reason.display_name}</div>
+                            {reason.description && (
+                              <div className="text-sm text-muted-foreground">{reason.description}</div>
+                            )}
+                            {reason.requires_note && (
+                              <div className="text-xs text-blue-600 mt-1">Requires note</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{reason.code}</TableCell>
+                        <TableCell>{reason.created_by_name}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive h-8 w-8"
+                            onClick={() => handleDeleteReason(reason.id)}
+                            disabled={deletingReason}
+                          >
+                            {deletingReason ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
@@ -140,31 +206,65 @@ export default function DefinitionsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Constraint</TableHead>
-                  <TableHead>Added By</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {constraints.map((constraint) => (
-                  <TableRow key={constraint.id}>
-                    <TableCell>
-                        <p className="font-medium">{constraint.name}</p>
-                        <p className="text-sm text-muted-foreground">{constraint.description}</p>
-                    </TableCell>
-                    <TableCell>{constraint.created_by}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            {constraintsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Constraint</TableHead>
+                    <TableHead>Rule</TableHead>
+                    <TableHead>Added By</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {serviceConstraints.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No service constraints found. Add one to get started.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    serviceConstraints.map((constraint) => (
+                      <TableRow key={constraint.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{constraint.name}</div>
+                            {constraint.description && (
+                              <div className="text-sm text-muted-foreground">{constraint.description}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {JSON.stringify(constraint.constraint_rule)}
+                          </code>
+                        </TableCell>
+                        <TableCell>{constraint.created_by_name}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive h-8 w-8"
+                            onClick={() => handleDeleteConstraint(constraint.id)}
+                            disabled={deletingConstraint}
+                          >
+                            {deletingConstraint ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -177,26 +277,94 @@ export default function DefinitionsPage() {
             </DialogHeader>
             <div className="py-4 space-y-4">
               {definitionType === 'reason' && (
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Reason</Label>
-                  <Input id="reason" name="reason" placeholder="e.g., Student not in registry" required />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="code">Code</Label>
+                    <Input 
+                      id="code" 
+                      name="code" 
+                      placeholder="e.g., late_exeat" 
+                      required 
+                      pattern="[a-z_]+"
+                      title="Use lowercase letters and underscores only"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="display_name">Display Name</Label>
+                    <Input 
+                      id="display_name" 
+                      name="display_name" 
+                      placeholder="e.g., Late Exeat Submission" 
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea 
+                      id="description" 
+                      name="description" 
+                      placeholder="Detailed explanation of when this reason applies"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="requires_note" name="requires_note" />
+                    <Label htmlFor="requires_note">Requires admin to add a note</Label>
+                  </div>
+                </>
               )}
               {definitionType === 'constraint' && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="name">Constraint Name</Label>
-                    <Input id="name" name="name" placeholder="e.g., All Levels Must Attend" required />
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      placeholder="e.g., Male Students Only" 
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Input id="description" name="description" placeholder="A short explanation of the rule." required />
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea 
+                      id="description" 
+                      name="description" 
+                      placeholder="Explain when and how this constraint applies"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="constraint_rule">Constraint Rule (JSON)</Label>
+                    <Textarea 
+                      id="constraint_rule" 
+                      name="constraint_rule" 
+                      placeholder='{"gender": "male"} or {"level_codes": ["400"]}'
+                      required
+                      rows={3}
+                      className="font-mono text-sm"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Examples: <code>{`{"gender": "male"}`}</code>, <code>{`{"level_codes": ["400"]}`}</code>, <code>{`{"exclude_level_codes": ["100"]}`}</code>
+                    </div>
                   </div>
                 </>
               )}
             </div>
             <DialogFooter>
-              <Button type="submit">Save Definition</Button>
+              <Button 
+                type="submit" 
+                disabled={creatingReason || creatingConstraint}
+                className="min-w-[120px]"
+              >
+                {(creatingReason || creatingConstraint) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Save Definition'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
