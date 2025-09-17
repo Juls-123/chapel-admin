@@ -1,107 +1,92 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from './use-toast';
-import { useEffect } from 'react';
-import { getAuthHeaders } from '@/lib/auth';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "./use-toast";
+import { useEffect } from "react";
+import { getAuthHeaders } from "@/lib/auth";
 
-// Types based on database schema
+// Workflow-level types (API shapes)
 export interface Service {
+  applicable_levels: string[];
   id: string;
-  type: 'morning' | 'evening' | 'special';
+  type: "morning" | "evening" | "special";
   name?: string;
-  service_date: string;
-  status: 'scheduled' | 'active' | 'completed' | 'canceled';
-  created_by: string;
-  created_at: string;
-  locked_after_ingestion: boolean;
-  applicable_levels?: string[];
-  service_levels?: ServiceLevel[];
-}
-
-export interface ServiceLevel {
-  id: string;
-  service_id: string;
-  level_id: string;
-  constraints?: Record<string, any>;
+  date: string; // ISO
+  status: "scheduled" | "active" | "completed" | "canceled";
+  levels: string[];
+  created_by?: string;
+  created_by_name?: string;
+  locked_after_ingestion?: boolean;
 }
 
 export interface CreateServiceData {
-  type: 'morning' | 'evening' | 'special';
+  service_type: "devotion" | "special" | "seminar";
+  devotion_type?: "morning" | "evening";
   name?: string;
-  service_date: string;
-  applicable_levels?: string[];
-  constraints?: Record<string, any>;
+  date: string; // ISO date string
+  time: string; // HH:mm format
+  applicable_levels: string[]; // level IDs
+  gender_constraint: "male" | "female" | "both";
 }
 
+export interface UpdateServiceData extends Partial<CreateServiceData> {}
+
 export interface ServiceFilters {
-  page?: number;
-  limit?: number;
-  type?: 'morning' | 'evening' | 'special';
-  status?: 'scheduled' | 'active' | 'completed' | 'canceled';
+  // Client-side filters only; kept for table state
+  type?: "morning" | "evening" | "special";
+  status?: "scheduled" | "active" | "completed" | "canceled";
   date_from?: string;
   date_to?: string;
   search?: string;
 }
 
-export interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
-
-export interface ServicesResponse {
-  data: Service[];
-  pagination: PaginationInfo;
-}
-
 // API functions
-async function fetchServices(filters: ServiceFilters = {}): Promise<ServicesResponse> {
-  const searchParams = new URLSearchParams();
-  
-  if (filters.type) searchParams.append('type', filters.type);
-  if (filters.status) searchParams.append('status', filters.status);
-  if (filters.date_from) searchParams.append('dateFrom', filters.date_from);
-  if (filters.date_to) searchParams.append('dateTo', filters.date_to);
-  if (filters.search) searchParams.append('search', filters.search);
-  if (filters.page) searchParams.append('page', filters.page.toString());
-  if (filters.limit) searchParams.append('limit', filters.limit.toString());
-
+async function fetchServices(filters: ServiceFilters = {}): Promise<Service[]> {
   const headers = await getAuthHeaders();
-  const response = await fetch(`/api/services?${searchParams}`, {
+
+  // Build query parameters to include all services including canceled
+  const params = new URLSearchParams();
+
+  // Always include all statuses including canceled
+  params.append("status", "scheduled,active,completed,canceled");
+
+  // Add other filters if provided
+  if (filters.type) params.append("type", filters.type);
+  if (filters.date_from) params.append("date_from", filters.date_from);
+  if (filters.date_to) params.append("date_to", filters.date_to);
+  if (filters.search) params.append("search", filters.search);
+
+  const response = await fetch(`/api/services?${params.toString()}`, {
     headers: {
       ...headers,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.details || error.error || 'Failed to fetch services');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.details || error.error || "Failed to fetch services");
   }
 
-  return response.json();
+  return response.json() as Promise<Service[]>; // Ensure fetch returns these fields without narrowing
 }
 
 async function createService(serviceData: CreateServiceData): Promise<Service> {
   const headers = await getAuthHeaders();
-  const response = await fetch('/api/services', {
-    method: 'POST',
+  const response = await fetch("/api/services", {
+    method: "POST",
     headers: {
       ...headers,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(serviceData),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.details || error.error || 'Failed to create service');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.details || error.error || "Failed to create service");
   }
 
   const result = await response.json();
-  return result.data;
+  return result as Service;
 }
 
 async function fetchService(id: string): Promise<Service> {
@@ -109,53 +94,102 @@ async function fetchService(id: string): Promise<Service> {
   const response = await fetch(`/api/services/${id}`, {
     headers: {
       ...headers,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.details || error.error || 'Failed to fetch service');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.details || error.error || "Failed to fetch service");
   }
 
   const result = await response.json();
-  return result.data;
+  // API returns { data } for single GET; normalize to Service
+  return (result?.data || result) as Service;
 }
 
-async function updateService(id: string, serviceData: Partial<CreateServiceData>): Promise<Service> {
+async function updateService(
+  id: string,
+  serviceData: UpdateServiceData
+): Promise<Service> {
   const headers = await getAuthHeaders();
   const response = await fetch(`/api/services/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
       ...headers,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(serviceData),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.details || error.error || 'Failed to update service');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.details || error.error || "Failed to update service");
   }
 
   const result = await response.json();
-  return result.data;
+  // Our API returns the updated service item directly
+  return (result?.data || result) as Service;
 }
 
 async function deleteService(id: string): Promise<void> {
   const headers = await getAuthHeaders();
   const response = await fetch(`/api/services/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: {
       ...headers,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.details || error.error || 'Failed to delete service');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.details || error.error || "Failed to cancel service");
   }
+}
+
+async function toggleLockIngestion(id: string): Promise<Service> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`/api/services/${id}/actions`, {
+    method: "POST",
+    headers: {
+      ...headers,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "toggle_lock" }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      error.details || error.error || "Failed to toggle lock ingestion"
+    );
+  }
+
+  const result = await response.json();
+  return (result?.data || result) as Service;
+}
+
+async function markAsCompleted(id: string): Promise<Service> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`/api/services/${id}/actions`, {
+    method: "POST",
+    headers: {
+      ...headers,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "complete" }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      error.details || error.error || "Failed to mark service as completed"
+    );
+  }
+
+  const result = await response.json();
+  return (result?.data || result) as Service;
 }
 
 // Hooks
@@ -164,7 +198,7 @@ export function useServices(filters: ServiceFilters = {}) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['services', filters],
+    queryKey: ["services"],
     queryFn: () => fetchServices(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -172,21 +206,22 @@ export function useServices(filters: ServiceFilters = {}) {
   const createServiceMutation = useCreateService();
   const updateServiceMutation = useUpdateService();
   const deleteServiceMutation = useDeleteService();
+  const toggleLockMutation = useToggleLockIngestion();
+  const markCompletedMutation = useMarkAsCompleted();
 
   // Handle errors with toast in useEffect to avoid setState during render
   useEffect(() => {
     if (query.error) {
       toast({
-        title: 'Error fetching services',
-        description: query.error.message,
-        variant: 'destructive',
+        title: "Error fetching services",
+        description: (query.error as Error).message,
+        variant: "destructive",
       });
     }
   }, [query.error, toast]);
 
   return {
-    services: query.data?.data || [],
-    pagination: query.data?.pagination,
+    services: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
@@ -196,15 +231,22 @@ export function useServices(filters: ServiceFilters = {}) {
     isUpdating: updateServiceMutation.isPending,
     deleteService: deleteServiceMutation.mutate,
     isDeleting: deleteServiceMutation.isPending,
+    toggleLock: toggleLockMutation.mutate,
+    markCompleted: markCompletedMutation.mutate,
+    isTogglingLock: toggleLockMutation.isPending,
+    isMarkingCompleted: markCompletedMutation.isPending,
     // Legacy API for existing components
     performAction: async (params: { id: string; action: any }) => {
-      if (params.action.action === 'cancel') {
+      if (params.action.action === "cancel") {
         return deleteServiceMutation.mutateAsync(params.id);
+      } else if (params.action.action === "complete") {
+        return markCompletedMutation.mutateAsync(params.id);
       }
       // Add other actions as needed
-      throw new Error('Action not implemented');
+      throw new Error("Action not implemented");
     },
-    isPerformingAction: deleteServiceMutation.isPending,
+    isPerformingAction:
+      deleteServiceMutation.isPending || markCompletedMutation.isPending,
   };
 }
 
@@ -212,7 +254,7 @@ export function useService(id: string) {
   const { toast } = useToast();
 
   const query = useQuery({
-    queryKey: ['service', id],
+    queryKey: ["service", id],
     queryFn: () => fetchService(id),
     enabled: !!id,
   });
@@ -221,9 +263,9 @@ export function useService(id: string) {
   useEffect(() => {
     if (query.error) {
       toast({
-        title: 'Error fetching service',
-        description: query.error.message,
-        variant: 'destructive',
+        title: "Error fetching service",
+        description: (query.error as Error).message,
+        variant: "destructive",
       });
     }
   }, [query.error, toast]);
@@ -239,18 +281,18 @@ export function useCreateService() {
     mutationFn: createService,
     onSuccess: (newService) => {
       // Invalidate and refetch services list
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+
       toast({
-        title: 'Service created',
-        description: `${newService.type} service for ${newService.service_date} created successfully`,
+        title: "Service created",
+        description: `${newService.type} service for ${newService.date} created successfully`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error creating service',
+        title: "Error creating service",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -261,23 +303,25 @@ export function useUpdateService() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateServiceData> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateServiceData }) =>
       updateService(id, data),
     onSuccess: (updatedService) => {
       // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['service', updatedService.id] });
-      
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({
+        queryKey: ["service", updatedService.id],
+      });
+
       toast({
-        title: 'Service updated',
-        description: 'Service updated successfully',
+        title: "Service updated",
+        description: "Service updated successfully",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error updating service',
+        title: "Error updating service",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -291,18 +335,78 @@ export function useDeleteService() {
     mutationFn: deleteService,
     onSuccess: () => {
       // Invalidate and refetch services list
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+
       toast({
-        title: 'Service canceled',
-        description: 'Service canceled successfully',
+        title: "Service canceled",
+        description: "Service canceled successfully",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error canceling service',
+        title: "Error canceling service",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useToggleLockIngestion() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: toggleLockIngestion,
+    onSuccess: (updatedService) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({
+        queryKey: ["service", updatedService.id],
+      });
+
+      toast({
+        title: updatedService.locked_after_ingestion
+          ? "Ingestion locked"
+          : "Ingestion unlocked",
+        description: `Service ingestion has been ${
+          updatedService.locked_after_ingestion ? "locked" : "unlocked"
+        }`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error toggling lock",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useMarkAsCompleted() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: markAsCompleted,
+    onSuccess: (updatedService) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({
+        queryKey: ["service", updatedService.id],
+      });
+
+      toast({
+        title: "Service completed",
+        description: "Service marked as completed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error marking service as completed",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });

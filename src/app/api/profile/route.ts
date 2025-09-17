@@ -1,85 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/auth/supabase';
-import { adminSchema } from '@/lib/validation/admins.schema';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/types/generated";
+import { requireAdmin } from "@/lib/api/auth";
+import { adminSchema } from "@/lib/validation/admins.schema";
+
+const supabaseAdmin = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the current user from the session
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { admin } = await requireAdmin(request);
 
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Get admin profile from database
-    const { data: admin, error: adminError } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('auth_user_id', user.id)
+    // Get admin profile from database (by admin id)
+    const { data: adminRow, error: adminError } = await supabaseAdmin
+      .from("admins")
+      .select("*")
+      .eq("id", admin.id)
       .single();
 
     if (adminError) {
-      console.error('Error fetching admin profile:', adminError);
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Profile not found",
+          code: "NOT_FOUND",
+          details: adminError.message,
+        },
+        { status: 404 }
+      );
     }
 
     // Validate the admin data
-    const validationResult = adminSchema.safeParse(admin);
+    const validationResult = adminSchema.safeParse(adminRow);
     if (!validationResult.success) {
-      console.error('Invalid admin data:', validationResult.error);
-      return NextResponse.json({ error: 'Invalid profile data' }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Invalid profile data",
+          code: "INVALID_DATA",
+          details: validationResult.error.errors,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(validationResult.data);
-  } catch (error) {
-    console.error('Profile API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error: any) {
+    const status = error?.status || 500;
+    const code =
+      error?.code ||
+      (status === 401
+        ? "UNAUTHORIZED"
+        : status === 403
+        ? "FORBIDDEN"
+        : "INTERNAL_ERROR");
+    return NextResponse.json(
+      {
+        error: error?.message || "Internal server error",
+        code,
+        details: error?.details,
+      },
+      { status }
+    );
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    // Get the current user from the session
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Get current admin to check permissions
-    const { data: currentAdmin, error: currentAdminError } = await supabase
-      .from('admins')
-      .select('role, id')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (currentAdminError || !currentAdmin) {
-      return NextResponse.json({ error: 'Admin profile not found' }, { status: 404 });
-    }
-
-    // Only superadmins can update profiles
-    if (currentAdmin.role !== 'superadmin') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
+    const { admin } = await requireAdmin(request, { role: "superadmin" });
 
     const body = await request.json();
-    
+
     // Validate the update data
-    const allowedFields = ['first_name', 'middle_name', 'last_name'];
+    const allowedFields = ["first_name", "middle_name", "last_name"];
     const updateData: any = {};
-    
+
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         updateData[field] = body[field];
@@ -87,32 +82,61 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+      return NextResponse.json(
+        { error: "No valid fields to update", code: "VALIDATION_ERROR" },
+        { status: 400 }
+      );
     }
 
     // Update the admin profile
-    const { data: updatedAdmin, error: updateError } = await supabase
-      .from('admins')
+    const { data: updatedAdmin, error: updateError } = await supabaseAdmin
+      .from("admins")
       .update(updateData)
-      .eq('id', currentAdmin.id)
+      .eq("id", admin.id)
       .select()
       .single();
 
     if (updateError) {
-      console.error('Error updating admin profile:', updateError);
-      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Failed to update profile",
+          code: "DB_ERROR",
+          details: updateError.message,
+        },
+        { status: 500 }
+      );
     }
 
     // Validate the updated admin data
     const validationResult = adminSchema.safeParse(updatedAdmin);
     if (!validationResult.success) {
-      console.error('Invalid updated admin data:', validationResult.error);
-      return NextResponse.json({ error: 'Invalid updated profile data' }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Invalid updated profile data",
+          code: "INVALID_DATA",
+          details: validationResult.error.errors,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(validationResult.data);
-  } catch (error) {
-    console.error('Profile update API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error: any) {
+    const status = error?.status || 500;
+    const code =
+      error?.code ||
+      (status === 401
+        ? "UNAUTHORIZED"
+        : status === 403
+        ? "FORBIDDEN"
+        : "INTERNAL_ERROR");
+    return NextResponse.json(
+      {
+        error: error?.message || "Internal server error",
+        code,
+        details: error?.details,
+      },
+      { status }
+    );
   }
 }

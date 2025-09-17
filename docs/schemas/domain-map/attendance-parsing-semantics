@@ -1,0 +1,298 @@
+<svg viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1400" height="1000" fill="#f8fafc"/>
+  
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#1e293b">Attendance Upload & Processing Flow</text>
+  
+  <!-- Phase 1: Upload Initiation -->
+  <g id="upload-phase">
+    <rect x="50" y="80" width="300" height="150" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+    <text x="200" y="105" text-anchor="middle" font-weight="bold" fill="#1e40af">1. Upload Initiation</text>
+    
+    <!-- Admin Action -->
+    <circle cx="120" cy="130" r="25" fill="#fbbf24"/>
+    <text x="120" y="135" text-anchor="middle" font-size="12" font-weight="bold">Admin</text>
+    
+    <!-- Date Picker -->
+    <rect x="70" y="160" width="80" height="30" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="110" y="178" text-anchor="middle" font-size="11">Date Picker</text>
+    
+    <!-- Service Dropdown -->
+    <rect x="160" y="160" width="80" height="30" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="200" y="178" text-anchor="middle" font-size="11">Service List</text>
+    
+    <!-- File Upload -->
+    <rect x="250" y="160" width="80" height="30" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="290" y="178" text-anchor="middle" font-size="11">CSV/Excel</text>
+    
+    <!-- Upload History Creation -->
+    <rect x="70" y="200" width="240" height="20" rx="3" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="190" y="213" text-anchor="middle" font-size="10">upload_history record created</text>
+  </g>
+
+  <!-- Phase 2: File Processing -->
+  <g id="processing-phase">
+    <rect x="400" y="80" width="350" height="180" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+    <text x="575" y="105" text-anchor="middle" font-weight="bold" fill="#15803d">2. File Processing & Validation</text>
+    
+    <!-- File Archive -->
+    <rect x="420" y="120" width="120" height="40" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="480" y="135" text-anchor="middle" font-size="11" font-weight="bold">scan_archives</text>
+    <text x="480" y="150" text-anchor="middle" font-size="10">Original file stored</text>
+    
+    <!-- Parsing Engine -->
+    <rect x="560" y="120" width="100" height="40" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="610" y="135" text-anchor="middle" font-size="11" font-weight="bold">Parser</text>
+    <text x="610" y="150" text-anchor="middle" font-size="10">CSV/Excel</text>
+    
+    <!-- Validation Process -->
+    <rect x="420" y="180" width="240" height="35" rx="5" fill="#fef2f2" stroke="#ef4444"/>
+    <text x="540" y="195" text-anchor="middle" font-size="11" font-weight="bold">Validation Process</text>
+    <text x="440" y="208" font-size="10">• Matric number format</text>
+    <text x="570" y="208" font-size="10">• Student existence check</text>
+    
+    <!-- Error Handling -->
+    <rect x="680" y="120" width="60" height="95" rx="5" fill="#fecaca" stroke="#dc2626"/>
+    <text x="710" y="135" text-anchor="middle" font-size="10" font-weight="bold">upload_errors</text>
+    <text x="710" y="150" text-anchor="middle" font-size="9">Row errors</text>
+    <text x="710" y="163" text-anchor="middle" font-size="9">Invalid data</text>
+    <text x="710" y="176" text-anchor="middle" font-size="9">Duplicates</text>
+    <text x="710" y="189" text-anchor="middle" font-size="9">Format issues</text>
+    <text x="710" y="202" text-anchor="middle" font-size="9">Missing refs</text>
+  </g>
+
+  <!-- Phase 3: Student Matching -->
+  <g id="matching-phase">
+    <rect x="800" y="80" width="300" height="180" rx="10" fill="#fef7ff" stroke="#a855f7" stroke-width="2"/>
+    <text x="950" y="105" text-anchor="middle" font-weight="bold" fill="#7c3aed">3. Student Matching</text>
+    
+    <!-- Students Database -->
+    <rect x="820" y="120" width="100" height="50" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="870" y="135" text-anchor="middle" font-size="11" font-weight="bold">students</text>
+    <text x="870" y="148" text-anchor="middle" font-size="10">matric_number</text>
+    <text x="870" y="161" text-anchor="middle" font-size="10">level_id</text>
+    
+    <!-- Matching Results -->
+    <rect x="940" y="120" width="80" height="35" rx="5" fill="#dcfce7" stroke="#22c55e"/>
+    <text x="980" y="135" text-anchor="middle" font-size="10" font-weight="bold">Matched</text>
+    <text x="980" y="148" text-anchor="middle" font-size="10">Found in DB</text>
+    
+    <rect x="940" y="165" width="80" height="35" rx="5" fill="#fecaca" stroke="#dc2626"/>
+    <text x="980" y="180" text-anchor="middle" font-size="10" font-weight="bold">Unmatched</text>
+    <text x="980" y="193" text-anchor="middle" font-size="10">Not found</text>
+    
+    <!-- Issue Creation -->
+    <rect x="1030" y="120" width="60" height="80" rx="5" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="1060" y="135" text-anchor="middle" font-size="10" font-weight="bold">issues</text>
+    <text x="1060" y="148" text-anchor="middle" font-size="9">Unmatched</text>
+    <text x="1060" y="161" text-anchor="middle" font-size="9">scans logged</text>
+    <text x="1060" y="174" text-anchor="middle" font-size="9">for resolution</text>
+    <text x="1060" y="187" text-anchor="middle" font-size="9">tracking</text>
+  </g>
+
+  <!-- Phase 4: Preview Generation -->
+  <g id="preview-phase">
+    <rect x="50" y="320" width="500" height="180" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="300" y="345" text-anchor="middle" font-weight="bold" fill="#c2410c">4. Preview Generation (US-019)</text>
+    
+    <!-- Batch Version Creation -->
+    <rect x="70" y="360" width="200" height="60" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="170" y="375" text-anchor="middle" font-size="11" font-weight="bold">attendance_batch_versions</text>
+    <text x="80" y="390" font-size="10">• service_id, level_id</text>
+    <text x="80" y="403" font-size="10">• attendees (jsonb)</text>
+    <text x="80" y="416" font-size="10">• absentees (jsonb), unmatched</text>
+    
+    <!-- Preview Interface -->
+    <rect x="290" y="360" width="120" height="80" rx="5" fill="#dbeafe" stroke="#3b82f6"/>
+    <text x="350" y="375" text-anchor="middle" font-size="11" font-weight="bold">Preview UI</text>
+    <text x="300" y="390" font-size="10">✓ Matched students</text>
+    <text x="300" y="403" font-size="10">⚠ Unmatched scans</text>
+    <text x="300" y="416" font-size="10">📊 Summary stats</text>
+    <text x="300" y="429" font-size="10">🔄 Confirm/Reject</text>
+    
+    <!-- Status Indicators -->
+    <rect x="430" y="360" width="100" height="80" rx="5" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="480" y="375" text-anchor="middle" font-size="10" font-weight="bold">Status Display</text>
+    <circle cx="450" cy="385" r="5" fill="#22c55e"/>
+    <text x="465" y="390" font-size="9">Found (Green)</text>
+    <circle cx="450" cy="400" r="5" fill="#dc2626"/>
+    <text x="465" y="405" font-size="9">Missing (Red)</text>
+    <circle cx="450" cy="415" r="5" fill="#f59e0b"/>
+    <text x="465" y="420" font-size="9">Duplicate (Yellow)</text>
+    
+    <!-- No DB writes note -->
+    <rect x="70" y="430" width="460" height="25" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="300" y="445" text-anchor="middle" font-size="12" font-weight="bold">⚠ NO DATABASE WRITES UNTIL CONFIRMED</text>
+  </g>
+
+  <!-- Phase 5: Exeat Processing -->
+  <g id="exeat-phase">
+    <rect x="600" y="320" width="250" height="120" rx="10" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="2"/>
+    <text x="725" y="345" text-anchor="middle" font-weight="bold" fill="#0369a1">5. Exeat Processing</text>
+    
+    <!-- Exeats Table -->
+    <rect x="620" y="360" width="100" height="60" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="670" y="375" text-anchor="middle" font-size="11" font-weight="bold">exeats</text>
+    <text x="630" y="390" font-size="10">period (daterange)</text>
+    <text x="630" y="403" font-size="10">student_id</text>
+    <text x="630" y="416" font-size="10">status = 'active'</text>
+    
+    <!-- Logic -->
+    <rect x="740" y="360" width="90" height="60" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="785" y="375" text-anchor="middle" font-size="11" font-weight="bold">Logic</text>
+    <text x="745" y="390" font-size="10">If absent AND</text>
+    <text x="745" y="403" font-size="10">has active exeat:</text>
+    <text x="745" y="416" font-size="10">→ 'exempted'</text>
+  </g>
+
+  <!-- Phase 6: Final Processing -->
+  <g id="final-phase">
+    <rect x="900" y="320" width="450" height="180" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+    <text x="1125" y="345" text-anchor="middle" font-weight="bold" fill="#15803d">6. Final Processing & Record Creation</text>
+    
+    <!-- Attendance Records -->
+    <rect x="920" y="360" width="180" height="80" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="1010" y="375" text-anchor="middle" font-size="11" font-weight="bold">attendance_records</text>
+    <text x="930" y="390" font-size="10">student_id, service_id</text>
+    <text x="930" y="403" font-size="10">status: present | absent | exempted</text>
+    <text x="930" y="416" font-size="10">UNIQUE constraint</text>
+    <text x="930" y="429" font-size="10">Auto-populated via trigger</text>
+    
+    <!-- Summary Generation -->
+    <rect x="1120" y="360" width="120" height="80" rx="5" fill="#ffffff" stroke="#6b7280"/>
+    <text x="1180" y="375" text-anchor="middle" font-size="11" font-weight="bold">attendance_summary</text>
+    <text x="1130" y="390" font-size="10">total_students</text>
+    <text x="1130" y="403" font-size="10">total_present</text>
+    <text x="1130" y="416" font-size="10">total_absent</text>
+    <text x="1130" y="429" font-size="10">total_exempted</text>
+    
+    <!-- Current Batch Pointer -->
+    <rect x="1260" y="360" width="80" height="60" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="1300" y="375" text-anchor="middle" font-size="10" font-weight="bold">current_attendance_batch</text>
+    <text x="1270" y="390" font-size="9">Points to active</text>
+    <text x="1270" y="403" font-size="9">batch version</text>
+    <text x="1270" y="416" font-size="9">per service+level</text>
+    
+    <!-- Upload Status Update -->
+    <rect x="920" y="450" width="320" height="30" rx="5" fill="#dcfce7" stroke="#22c55e"/>
+    <text x="1080" y="468" text-anchor="middle" font-size="11" font-weight="bold">Upload History Status: 'completed' | 'partial' | 'failed'</text>
+  </g>
+
+  <!-- Data Flow Arrows -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151"/>
+    </marker>
+  </defs>
+  
+  <!-- Flow arrows -->
+  <path d="M 350 155 L 400 155" stroke="#374151" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 750 160 L 800 160" stroke="#374151" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 950 260 Q 950 290 300 290 Q 300 320 300 320" stroke="#374151" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 550 400 L 600 400" stroke="#374151" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 725 440 Q 725 460 900 460 Q 900 400 920 400" stroke="#374151" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Legend -->
+  <g id="legend">
+    <rect x="50" y="550" width="1300" height="120" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="700" y="575" text-anchor="middle" font-weight="bold" font-size="14" fill="#1e293b">Key Data Transformations</text>
+    
+    <rect x="70" y="590" width="200" height="70" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="170" y="610" text-anchor="middle" font-weight="bold" font-size="12">Attendees List Generation</text>
+    <text x="80" y="625" font-size="11">✓ Matched scanned students</text>
+    <text x="80" y="638" font-size="11">✓ Status = 'present'</text>
+    <text x="80" y="651" font-size="11">✓ Stored in attendees jsonb</text>
+    
+    <rect x="290" y="590" width="200" height="70" rx="5" fill="#fecaca" stroke="#dc2626"/>
+    <text x="390" y="610" text-anchor="middle" font-weight="bold" font-size="12">Absentees List Generation</text>
+    <text x="300" y="625" font-size="11">• All registered students</text>
+    <text x="300" y="638" font-size="11">• MINUS attendees</text>
+    <text x="300" y="651" font-size="11">• Check exeat status</text>
+    
+    <rect x="510" y="590" width="200" height="70" rx="5" fill="#ddd6fe" stroke="#8b5cf6"/>
+    <text x="610" y="610" text-anchor="middle" font-weight="bold" font-size="12">Status Logic</text>
+    <text x="520" y="625" font-size="11">present: In attendance scan</text>
+    <text x="520" y="638" font-size="11">absent: Missing + no exeat</text>
+    <text x="520" y="651" font-size="11">exempted: Missing + has exeat</text>
+    
+    <rect x="730" y="590" width="200" height="70" rx="5" fill="#fed7d7" stroke="#e53e3e"/>
+    <text x="830" y="610" text-anchor="middle" font-weight="bold" font-size="12">Error Handling</text>
+    <text x="740" y="625" font-size="11">• Unmatched → issues table</text>
+    <text x="740" y="638" font-size="11">• Parse errors → upload_errors</text>
+    <text x="740" y="651" font-size="11">• Admin resolution required</text>
+    
+    <rect x="950" y="590" width="200" height="70" rx="5" fill="#c6f6d5" stroke="#38a169"/>
+    <text x="1050" y="610" text-anchor="middle" font-weight="bold" font-size="12">Atomic Processing</text>
+    <text x="960" y="625" font-size="11">• Preview before commit</text>
+    <text x="960" y="638" font-size="11">• All-or-nothing ingestion</text>
+    <text x="960" y="651" font-size="11">• Rollback on critical errors</text>
+    
+    <rect x="1170" y="590" width="170" height="70" rx="5" fill="#bee3f8" stroke="#3182ce"/>
+    <text x="1255" y="610" text-anchor="middle" font-weight="bold" font-size="12">Versioning</text>
+    <text x="1180" y="625" font-size="11">• Each upload = new version</text>
+    <text x="1180" y="638" font-size="11">• Historical tracking</text>
+    <text x="1180" y="651" font-size="11">• Superseding mechanism</text>
+  </g>
+
+  <!-- Database Trigger Flow -->
+  <g id="triggers">
+    <rect x="50" y="700" width="1300" height="80" rx="10" fill="#f7fafc" stroke="#718096" stroke-width="1"/>
+    <text x="700" y="725" text-anchor="middle" font-weight="bold" font-size="14" fill="#2d3748">Automated Trigger Chain</text>
+    
+    <rect x="80" y="740" width="180" height="30" rx="5" fill="#ffffff" stroke="#4a5568"/>
+    <text x="170" y="758" text-anchor="middle" font-size="11">attendance_batch_versions INSERT</text>
+    
+    <text x="280" y="758" text-anchor="middle" font-size="14">→</text>
+    
+    <rect x="300" y="740" width="150" height="30" rx="5" fill="#fed7d7" stroke="#e53e3e"/>
+    <text x="375" y="758" text-anchor="middle" font-size="11">populate_attendance_records()</text>
+    
+    <text x="470" y="758" text-anchor="middle" font-size="14">→</text>
+    
+    <rect x="490" y="740" width="120" height="30" rx="5" fill="#c6f6d5" stroke="#38a169"/>
+    <text x="550" y="758" text-anchor="middle" font-size="11">attendance_records</text>
+    
+    <text x="630" y="758" text-anchor="middle" font-size="14">→</text>
+    
+    <rect x="650" y="740" width="120" height="30" rx="5" fill="#bee3f8" stroke="#3182ce"/>
+    <text x="710" y="758" text-anchor="middle" font-size="11">update statistics</text>
+    
+    <text x="790" y="758" text-anchor="middle" font-size="14">→</text>
+    
+    <rect x="810" y="740" width="120" height="30" rx="5" fill="#fef5e7" stroke="#d69e2e"/>
+    <text x="870" y="758" text-anchor="middle" font-size="11">upload_history status</text>
+    
+    <text x="950" y="758" text-anchor="middle" font-size="14">→</text>
+    
+    <rect x="970" y="740" width="120" height="30" rx="5" fill="#e6fffa" stroke="#319795"/>
+    <text x="1030" y="758" text-anchor="middle" font-size="11">current_batch update</text>
+  </g>
+
+  <!-- Process Notes -->
+  <g id="notes">
+    <rect x="50" y="820" width="1300" height="160" rx="10" fill="#fffbf0" stroke="#d69e2e" stroke-width="2"/>
+    <text x="700" y="845" text-anchor="middle" font-weight="bold" font-size="16" fill="#744210">Critical Implementation Notes</text>
+    
+    <text x="70" y="870" font-weight="bold" font-size="12" fill="#744210">1. Atomic Processing (US-018):</text>
+    <text x="90" y="885" font-size="11">• File validation happens before any DB writes</text>
+    <text x="90" y="900" font-size="11">• Preview phase allows admin verification without committing data</text>
+    <text x="90" y="915" font-size="11">• Transaction rollback on critical errors ensures data consistency</text>
+    
+    <text x="450" y="870" font-weight="bold" font-size="12" fill="#744210">2. Student List Generation Logic:</text>
+    <text x="470" y="885" font-size="11">• Attendees = Students found in scanner file AND matched in DB</text>
+    <text x="470" y="900" font-size="11">• Absentees = All registered students for level MINUS attendees</text>
+    <text x="470" y="915" font-size="11">• Exempted status applied during record creation via exeat check</text>
+    
+    <text x="850" y="870" font-weight="bold" font-size="12" fill="#744210">3. Data Flow Control:</text>
+    <text x="870" y="885" font-size="11">• scan_archives preserves original file for audit trail</text>
+    <text x="870" y="900" font-size="11">• attendance_batch_versions enables versioning and rollback</text>
+    <text x="870" y="915" font-size="11">• issues table captures unmatched scans for resolution</text>
+    
+    <text x="70" y="940" font-weight="bold" font-size="12" fill="#744210">4. Error Handling Strategy:</text>
+    <text x="90" y="955" font-size="11">• Validation errors stored in upload_errors with row-level detail</text>
+    <text x="90" y="970" font-size="11">• Unmatched students logged as issues for admin review</text>
+    <text x="480" y="955" font-size="11">• Processing continues with valid records, partial success supported</text>
+    <text x="480" y="970" font-size="11">• Manual override system allows post-processing corrections</text>
+  </g>
+</svg>

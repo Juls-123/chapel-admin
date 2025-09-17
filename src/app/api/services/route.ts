@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/api/auth";
+import { ServiceService } from "@/services/ServiceService";
 
 // Use service role key for admin operations
 const supabaseAdmin = createClient(
@@ -8,325 +10,251 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Validation schemas
+// Validation schemas (kept for future optional server-side filters if needed)
 const serviceQuerySchema = z.object({
-  page: z.string().optional().default('1').transform(val => parseInt(val, 10)),
-  limit: z.string().optional().default('10').transform(val => parseInt(val, 10)),
-  type: z.enum(['morning', 'evening', 'special']).optional(),
-  status: z.enum(['scheduled', 'active', 'completed', 'canceled']).optional(),
+  page: z
+    .string()
+    .optional()
+    .default("1")
+    .transform((val) => parseInt(val, 10)),
+  limit: z
+    .string()
+    .optional()
+    .default("10")
+    .transform((val) => parseInt(val, 10)),
+  type: z.enum(["morning", "evening", "special"]).optional(),
+  status: z
+    .union([
+      z.enum(["scheduled", "active", "completed", "canceled"]),
+      z
+        .string()
+        .transform(
+          (val) =>
+            val
+              .split(",")
+              .filter((s) =>
+                ["scheduled", "active", "completed", "canceled"].includes(
+                  s.trim()
+                )
+              ) as ("scheduled" | "active" | "completed" | "canceled")[]
+        ),
+    ])
+    .optional(),
+  service_date: z.string().optional(), // Add service_date support
   date_from: z.string().optional(),
   date_to: z.string().optional(),
+  date: z.string().optional(),
   search: z.string().optional(),
 });
 
 const createServiceSchema = z.object({
-  type: z.enum(['morning', 'evening', 'special']),
+  // New schema fields
+  service_type: z.enum(["devotion", "special", "seminar"]),
+  devotion_type: z.enum(["morning", "evening"]).optional(),
   name: z.string().optional(),
-  service_date: z.string(),
-  applicable_levels: z.array(z.string()).optional(),
-  constraints: z.any().optional(),
+  date: z.string(), // ISO date string
+  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: "Please enter a valid time in HH:mm format.",
+  }),
+  applicable_levels: z.array(z.string()).min(1, {
+    message: "At least one level must be selected.",
+  }),
+  gender_constraint: z.enum(["male", "female", "both"]),
 });
 
-// Helper function to get authenticated admin from request
-async function getAdminFromRequest(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return { error: 'Missing or invalid authorization header', status: 401 };
-    }
-
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return { error: 'Invalid token', status: 401 };
-    }
-
-    // Get admin record with role information
-    const { data: admin, error: adminError } = await supabaseAdmin
-      .from('admins')
-      .select('id, role, first_name, last_name, email')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (adminError || !admin) {
-      console.error('Admin lookup error:', adminError);
-      return { error: 'Admin access required', status: 403 };
-    }
-
-    return { admin };
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return { error: 'Authentication failed', status: 500 };
-  }
-}
-
-// Helper function to log admin actions
+// Helper function to log admin actions server-side
 async function logAdminAction(
-  adminId: string, 
-  action: string, 
+  adminId: string,
+  action: string,
   objectType: string | null = null,
   objectId: string | null = null,
   objectLabel: string | null = null,
   details: Record<string, any> = {}
 ) {
   try {
-    await supabaseAdmin
-      .from('admin_actions')
-      .insert({
-        admin_id: adminId,
-        action,
-        object_type: objectType,
-        object_id: objectId,
-        object_label: objectLabel,
-        details,
-        created_at: new Date().toISOString(),
-      });
-
+    await supabaseAdmin.from("admin_actions").insert({
+      admin_id: adminId,
+      action,
+      object_type: objectType,
+      object_id: objectId,
+      object_label: objectLabel,
+      details,
+      created_at: new Date().toISOString(),
+    });
   } catch (error) {
-    console.error('Admin action logging error:', error);
+    console.error("Admin action logging error:", error);
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate admin
-    const authResult = await getAdminFromRequest(request);
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
-    // Parse and validate query parameters
+    // Any admin can view services
+    await requireAdmin(request);
+    const service = new ServiceService();
     const { searchParams } = new URL(request.url);
-    const queryParams = Object.fromEntries(searchParams.entries());
-    
-    const validation = serviceQuerySchema.safeParse(queryParams);
-    if (!validation.success) {
-      return NextResponse.json({ 
-        error: 'Invalid query parameters',
-        details: validation.error.errors
-      }, { status: 400 });
+
+    // Parse query parameters
+    const parsed = serviceQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries())
+    );
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid query parameters",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.errors,
+        },
+        { status: 400 }
+      );
     }
 
-    const params = validation.data;
+    const { date, service_date, status } = parsed.data;
 
-    // Get total count first
-    let countQuery = supabaseAdmin
-      .from('services')
-      .select('*', { count: 'exact', head: true });
+    // Use service_date if provided, otherwise fall back to date
+    const filterDate = service_date || date;
 
-    // Apply same filters for count
-    if (params.type) {
-      countQuery = countQuery.eq('type', params.type);
-    }
-    if (params.status) {
-      countQuery = countQuery.eq('status', params.status);
-    }
-    if (params.date_from) {
-      countQuery = countQuery.gte('service_date', params.date_from);
-    }
-    if (params.date_to) {
-      countQuery = countQuery.lte('service_date', params.date_to);
-    }
-    if (params.search) {
-      countQuery = countQuery.or(`name.ilike.%${params.search}%,type.ilike.%${params.search}%`);
+    // Handle status filtering - support both single and multiple statuses
+    let statusFilter:
+      | ("scheduled" | "active" | "completed" | "canceled")[]
+      | undefined;
+    if (status) {
+      statusFilter = Array.isArray(status) ? status : [status];
     }
 
-    const { count, error: countError } = await countQuery;
-    
-    if (countError) {
-      return NextResponse.json({ 
-        error: 'Database error',
-        details: countError.message 
-      }, { status: 500 });
-    }
+    const items = await service.getServices(filterDate, statusFilter);
 
-    // Build main query
-    let query = supabaseAdmin
-      .from('services')
-      .select(`
-        id,
-        type,
-        name,
-        service_date,
-        status,
-        created_by,
-        created_at,
-        locked_after_ingestion
-      `);
-
-    // Apply filters
-    if (params.type) {
-      query = query.eq('type', params.type);
-    }
-    if (params.status) {
-      query = query.eq('status', params.status);
-    }
-    if (params.date_from) {
-      query = query.gte('service_date', params.date_from);
-    }
-    if (params.date_to) {
-      query = query.lte('service_date', params.date_to);
-    }
-    if (params.search) {
-      query = query.or(`name.ilike.%${params.search}%,type.ilike.%${params.search}%`);
-    }
-
-    // Apply pagination and ordering
-    const offset = (params.page - 1) * params.limit;
-    query = query
-      .order('service_date', { ascending: false })
-      .range(offset, offset + params.limit - 1);
-
-    const { data: services, error: servicesError } = await query;
-
-    if (servicesError) {
-      return NextResponse.json({ 
-        error: 'Database error',
-        details: servicesError.message 
-      }, { status: 500 });
-    }
-
-    // Transform services for response
-    const transformedServices = (services || []).map(service => ({
-      id: service.id,
-      type: service.type,
-      name: service.name,
-      service_date: service.service_date,
-      date: service.service_date, // Frontend compatibility
-      status: service.status,
-      created_by: service.created_by,
-      created_at: service.created_at,
-      locked_after_ingestion: service.locked_after_ingestion,
-      applicable_levels: [], // Will be populated if needed
-      service_levels: [] // Will be populated if needed
-    }));
-
-    // Calculate pagination
-    const totalPages = count ? Math.ceil(count / params.limit) : 0;
-    const pagination = {
-      page: params.page,
-      limit: params.limit,
-      total: count || 0,
-      totalPages,
-      hasNext: params.page < totalPages,
-      hasPrev: params.page > 1
-    };
-
-    const response = {
-      data: transformedServices,
-      pagination
-    };
-
-    return NextResponse.json(response);
-
-  } catch (error) {
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: 'An unexpected error occurred while fetching services'
-    }, { status: 500 });
+    // Workflow requires plain array output
+    return NextResponse.json(items);
+  } catch (error: any) {
+    const status = error?.status || 500;
+    const code =
+      error?.code ||
+      (status === 401
+        ? "UNAUTHORIZED"
+        : status === 403
+        ? "FORBIDDEN"
+        : "INTERNAL_ERROR");
+    const message =
+      status === 401 || status === 403
+        ? error?.message
+        : "Internal server error";
+    return NextResponse.json(
+      { error: message, code, details: error?.details },
+      { status }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate admin
-    const authResult = await getAdminFromRequest(request);
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-    const { admin } = authResult;
+    const { admin } = await requireAdmin(request); // allow any admin to create per workflow
 
-    // Parse and validate request body
     const body = await request.json();
-    
-    const validation = createServiceSchema.safeParse(body);
-    
-    if (!validation.success) {
-      return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: validation.error.errors 
-      }, { status: 400 });
+    const parsed = createServiceSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.errors,
+        },
+        { status: 400 }
+      );
     }
 
-    const serviceData = validation.data;
+    const {
+      service_type,
+      devotion_type,
+      name,
+      date,
+      time,
+      applicable_levels,
+      gender_constraint,
+    } = parsed.data;
 
-    // Create the service
-    const { data: newService, error: serviceError } = await supabaseAdmin
-      .from('services')
-      .insert({
-        type: serviceData.type,
-        name: serviceData.name,
-        service_date: serviceData.service_date,
-        status: 'scheduled',
-        created_by: admin.id,
-        locked_after_ingestion: false
-      })
-      .select()
-      .single();
+    // Convert new schema to format expected by ServiceService
+    const [hours, minutes] = time.split(":").map(Number);
+    const serviceDateTime = new Date(date);
+    serviceDateTime.setHours(hours, minutes, 0, 0);
 
-    if (serviceError) {
-      return NextResponse.json({ 
-        error: 'Failed to create service',
-        details: serviceError.message 
-      }, { status: 500 });
+    // Convert service_type/devotion_type to legacy type format for ServiceService
+    const legacyType = service_type === "devotion" ? devotion_type! : "special";
+
+    // Auto-generate name for devotions if not provided
+    const serviceName =
+      service_type === "devotion"
+        ? devotion_type === "morning"
+          ? "Morning Devotion"
+          : "Evening Devotion"
+        : name;
+
+    // Convert level IDs to codes - fetch levels to map IDs to codes
+    const { data: levels, error: levelsError } = await supabaseAdmin
+      .from("levels")
+      .select("id, code")
+      .in("id", applicable_levels);
+
+    if (levelsError) {
+      return NextResponse.json(
+        {
+          error: "Failed to fetch levels",
+          code: "LEVELS_FETCH_FAILED",
+          details: levelsError.message,
+        },
+        { status: 500 }
+      );
     }
 
-    // Create service levels if applicable_levels provided
-    if (serviceData.applicable_levels && serviceData.applicable_levels.length > 0) {
-      const serviceLevels = serviceData.applicable_levels.map(levelId => ({
-        service_id: newService.id,
-        level_id: parseInt(levelId, 10),
-        constraints: serviceData.constraints || null
-      }));
+    const levelCodes = levels?.map((level) => level.code) || [];
 
-      await supabaseAdmin
-        .from('service_levels')
-        .insert(serviceLevels);
-    }
+    const serviceInput = {
+      service_type,
+      devotion_type,
+      name: serviceName,
+      date: date, // Send as YYYY-MM-DD
+      time: time, // Send as HH:mm
+      applicable_levels: applicable_levels, // Send level IDs
+      gender_constraint,
+    };
+
+    const service = new ServiceService();
+    const result = await service.createService(serviceInput, admin.id);
 
     // Log admin action
     await logAdminAction(
       admin.id,
-      'created_service',
-      'service',
-      newService.id,
-      serviceData.name || serviceData.type,
-      { type: serviceData.type, service_date: serviceData.service_date }
+      `Created Service ${result.name || result.type}`,
+      "service",
+      result.id,
+      result.name || result.type,
+      {
+        service_type,
+        devotion_type,
+        date: result.date,
+        levels: result.levels,
+        gender_constraint,
+      }
     );
 
-    // Transform service for response
-    const transformedService = {
-      id: newService.id,
-      type: newService.type,
-      name: newService.name,
-      service_date: newService.service_date,
-      date: newService.service_date,
-      status: newService.status,
-      created_by: newService.created_by,
-      created_at: newService.created_at,
-      locked_after_ingestion: newService.locked_after_ingestion,
-      applicable_levels: serviceData.applicable_levels || [],
-      service_levels: []
-    };
-
-    return NextResponse.json({
-      data: transformedService,
-      message: 'Service created successfully'
-    }, { status: 201 });
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: 'Validation failed', 
-        details: error.errors 
-      }, { status: 400 });
-    }
-
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: 'An unexpected error occurred while creating service'
-    }, { status: 500 });
+    // Workflow requires returning the created service record
+    return NextResponse.json(result, { status: 201 });
+  } catch (error: any) {
+    const status = error?.status || 500;
+    const code =
+      error?.code ||
+      (status === 401
+        ? "UNAUTHORIZED"
+        : status === 403
+        ? "FORBIDDEN"
+        : "INTERNAL_ERROR");
+    const message =
+      status === 400 || status === 401 || status === 403
+        ? error?.message || "Request failed"
+        : "Internal server error";
+    return NextResponse.json(
+      { error: message, code, details: error?.details },
+      { status }
+    );
   }
 }

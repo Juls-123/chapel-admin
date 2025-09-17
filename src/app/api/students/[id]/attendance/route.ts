@@ -1,161 +1,224 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/types/generated";
+import { requireAdmin } from "@/lib/api/auth";
+import { buildResponse, handleApiError, failure } from "@/lib/api/response";
 
-// Use service role key for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Route: GET /api/students/[id]/attendance
+
+// Helper method to load JSON from storage
+async function loadJSONFromStorage(path: string): Promise<any[]> {
+  const supabaseAdmin = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const bucket = process.env.SUPABASE_ATTENDANCE_BUCKET || "attendance-scans";
+  const { data, error } = await supabaseAdmin.storage
+    .from(bucket)
+    .download(path);
+
+  if (error) {
+    console.warn(`Failed to load JSON from ${path}: ${error.message}`);
+    return [];
+  }
+
+  try {
+    const text = await data.text();
+    return JSON.parse(text);
+  } catch (parseError) {
+    console.warn(`Failed to parse JSON from ${path}:`, parseError);
+    return [];
+  }
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get the current user from the session
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    await requireAdmin(request);
 
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Verify admin role
-    const { data: admin, error: adminError } = await supabaseAdmin
-      .from('admins')
-      .select('id, role')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (adminError || !admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    const supabaseAdmin = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // First verify the student exists
     const { data: student, error: studentError } = await supabaseAdmin
-      .from('students')
-      .select('id, matric_number, first_name, last_name')
-      .eq('id', params.id)
+      .from("students")
+      .select("id, matric_number, first_name, last_name")
+      .eq("id", params.id)
       .single();
 
     if (studentError || !student) {
-      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+      return failure({
+        code: "NOT_FOUND",
+        message: "Student not found",
+        status: 404,
+        details: studentError?.message,
+      });
     }
 
     // Parse query parameters
     const url = new URL(request.url);
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '20');
-    const serviceId = url.searchParams.get('service_id');
-    const status = url.searchParams.get('status'); // 'present', 'absent', 'excused'
-    const startDate = url.searchParams.get('start_date');
-    const endDate = url.searchParams.get('end_date');
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const serviceId = url.searchParams.get("service_id");
+    const status = url.searchParams.get("status"); // 'present', 'absent'
+    const startDate = url.searchParams.get("start_date");
+    const endDate = url.searchParams.get("end_date");
 
     const offset = (page - 1) * limit;
 
-    // Build attendance query
+    // Build query to get attendance batches with service information
     let query = supabaseAdmin
-      .from('attendance')
-      .select(`
+      .from("attendance_batches")
+      .select(
+        `
         id,
-        student_id,
-        service_id,
-        status,
-        marked_at,
-        marked_by,
-        notes,
-        services!attendance_service_id_fkey(
+        version_number,
+        attendees_path,
+        absentees_path,
+        created_at,
+        attendance_uploads!inner(
           id,
-          name,
-          type,
-          date,
-          start_time,
-          end_time
-        ),
-        admins!attendance_marked_by_fkey(
-          id,
-          first_name,
-          last_name
+          service_id,
+          level_id,
+          uploaded_by,
+          uploaded_at,
+          services!inner(
+            id,
+            name,
+            service_type,
+            devotion_type,
+            service_date,
+            service_time
+          ),
+          levels(code, name)
         )
-      `)
-      .eq('student_id', params.id)
-      .range(offset, offset + limit - 1)
-      .order('marked_at', { ascending: false });
+      `
+      )
+      .order("attendance_uploads.services.service_date", { ascending: false })
+      .order("created_at", { ascending: false });
 
-    // Apply filters
+    // Apply service filter
     if (serviceId) {
-      query = query.eq('service_id', serviceId);
+      query = query.eq("attendance_uploads.service_id", serviceId);
     }
 
-    if (status) {
-      query = query.eq('status', status);
-    }
-
+    // Apply date filters
     if (startDate) {
-      query = query.gte('services.date', startDate);
+      query = query.gte("attendance_uploads.services.service_date", startDate);
     }
 
     if (endDate) {
-      query = query.lte('services.date', endDate);
+      query = query.lte("attendance_uploads.services.service_date", endDate);
     }
 
-    const { data: attendance, error: attendanceError } = await query;
+    const { data: batches, error: batchError } = await query;
 
-    if (attendanceError) {
-      console.error('Error fetching attendance:', attendanceError);
-      return NextResponse.json({ error: 'Failed to fetch attendance records' }, { status: 500 });
+    if (batchError) {
+      throw Object.assign(new Error("Failed to fetch attendance batches"), {
+        status: 500,
+        code: "BATCH_FETCH_FAILED",
+        details: batchError.message,
+      });
     }
 
-    // Get total count for pagination
-    let countQuery = supabaseAdmin
-      .from('attendance')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', params.id);
+    // Process batches to find student attendance records
+    const attendanceRecords: any[] = [];
 
-    if (serviceId) {
-      countQuery = countQuery.eq('service_id', serviceId);
+    for (const batch of batches || []) {
+      try {
+        // Load attendees and absentees from storage
+        const [attendeesData, absenteesData] = await Promise.all([
+          loadJSONFromStorage(batch.attendees_path),
+          loadJSONFromStorage(batch.absentees_path),
+        ]);
+
+        // Check if student is in attendees
+        const attendeeRecord = attendeesData.find(
+          (attendee: any) => attendee.student_id === params.id
+        );
+
+        // Check if student is in absentees
+        const absenteeRecord = absenteesData.find(
+          (absentee: any) => absentee.student_id === params.id
+        );
+
+        // Create attendance record if student is found
+        if (attendeeRecord || absenteeRecord) {
+          const service = batch.attendance_uploads?.services;
+          const level = batch.attendance_uploads?.levels;
+          const isPresent = !!attendeeRecord;
+
+          // Apply status filter
+          if (
+            status &&
+            ((status === "present" && !isPresent) ||
+              (status === "absent" && isPresent))
+          ) {
+            continue;
+          }
+
+          const record = {
+            id: `${batch.id}-${params.id}`,
+            student_id: params.id,
+            service_id: service?.id,
+            batch_id: batch.id,
+            status: isPresent ? "present" : "absent",
+            marked_at: batch.created_at,
+            marked_by: batch.attendance_uploads?.uploaded_by,
+            notes: null,
+            service_name:
+              service?.name ||
+              (service?.service_type === "devotion"
+                ? `${
+                    service.devotion_type === "evening" ? "Evening" : "Morning"
+                  } Devotion`
+                : "Special Service"),
+            service_type: service?.service_type,
+            service_date: service?.service_date,
+            service_time: service?.service_time,
+            level_code: level?.code,
+            level_name: level?.name,
+          };
+
+          attendanceRecords.push(record);
+        }
+      } catch (storageError) {
+        console.warn(
+          `Failed to load attendance data for batch ${batch.id}:`,
+          storageError
+        );
+        continue;
+      }
     }
 
-    if (status) {
-      countQuery = countQuery.eq('status', status);
-    }
+    // Apply pagination
+    const totalCount = attendanceRecords.length;
+    const paginatedRecords = attendanceRecords.slice(offset, offset + limit);
 
-    const { count: totalCount } = await countQuery;
-
-    // Transform data to flatten nested objects
-    const transformedData = attendance?.map((record: any) => ({
-      ...record,
-      service_name: record.services?.name,
-      service_type: record.services?.type,
-      service_date: record.services?.date,
-      service_start_time: record.services?.start_time,
-      service_end_time: record.services?.end_time,
-      marked_by_name: record.admins ? `${record.admins.first_name} ${record.admins.last_name}` : null,
-      services: undefined, // Remove nested object
-      admins: undefined, // Remove nested object
-    }));
-
-    return NextResponse.json({
-      data: transformedData || [],
-      student: {
-        id: student.id,
-        matric_number: student.matric_number,
-        name: `${student.first_name} ${student.last_name}`
-      },
-      pagination: {
-        page,
-        limit,
-        total: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / limit),
-      },
-    });
+    return NextResponse.json(
+      buildResponse({
+        data: {
+          student: {
+            id: student.id,
+            matric_number: student.matric_number,
+            name: `${student.first_name} ${student.last_name}`,
+          },
+          records: paginatedRecords,
+        },
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      })
+    );
   } catch (error) {
-    console.error('Student attendance API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error, "students/:id/attendance.GET");
   }
 }

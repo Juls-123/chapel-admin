@@ -1,62 +1,33 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { api } from '@/lib/requestFactory';
-import { supabase } from '@/lib/auth/supabase';
-import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/requestFactory";
+import { useToast } from "@/hooks/use-toast";
+import type {
+  StudentRecord,
+  CreateStudentInput as CreateStudentData,
+} from "@/services/StudentService";
 
-export interface Student {
-  id: string;
-  matric_number: string;
-  first_name: string;
-  middle_name?: string;
-  last_name: string;
-  full_name: string;
-  email: string;
-  parent_email: string;
-  parent_phone: string;
-  gender: 'male' | 'female';
-  department: string;
-  level: number;
-  level_name?: string;
-  status: 'active' | 'inactive';
-  created_at: string;
-  updated_at: string;
-}
+export type Student = StudentRecord;
+export type { CreateStudentData, StudentRecord };
 
-export interface CreateStudentData {
-  matric_number: string;
-  first_name: string;
-  middle_name?: string;
-  last_name: string;
-  email: string;
-  parent_email: string;
-  parent_phone: string;
-  gender: 'male' | 'female';
-  department: string;
-  level: number;
-}
+export type UpdateStudentData = Partial<CreateStudentData> & {
+  status?: "active" | "inactive";
+};
 
 export interface BulkUploadPayload {
   students: CreateStudentData[];
   uploadMetadata: {
-    fileName: string;
-    fileSize: number;
-    uploadDate: string;
+    student_upload_id: string;
+    fileName?: string;
+    fileSize?: number;
   };
 }
 
-export interface UpdateStudentData {
-  matric_number?: string;
-  first_name?: string;
-  middle_name?: string;
-  last_name?: string;
-  email?: string;
-  parent_email?: string;
-  parent_phone?: string;
-  gender?: 'male' | 'female';
-  department?: string;
-  level?: number;
-  status?: 'active' | 'inactive';
+export interface UploadRecord {
+  id: string;
+  storage_path: string;
+  file_hash: string;
+  uploaded_by: string;
+  uploaded_at: string;
 }
 
 export interface StudentsQueryParams {
@@ -85,220 +56,292 @@ export function useStudents(params: StudentsQueryParams = {}) {
   const { toast } = useToast();
   const { onUploadSuccess, onUploadError, ...queryParams } = params;
 
+  // Build a stable key from scalar params only
+  const {
+    page = 1,
+    limit = 50,
+    search = "",
+    level = "",
+    status = "",
+    department = "",
+  } = queryParams;
+  const queryKey = [
+    "students",
+    page,
+    limit,
+    search || null,
+    level || null,
+    status || null,
+    department || null,
+  ];
+
   // Query for fetching students
   const query = useQuery({
-    queryKey: ['students', queryParams],
+    queryKey,
     queryFn: async (): Promise<StudentsResponse> => {
       const searchParams = new URLSearchParams();
-      if (queryParams.page) searchParams.set('page', queryParams.page.toString());
-      if (queryParams.limit) searchParams.set('limit', queryParams.limit.toString());
-      if (queryParams.search) searchParams.set('search', queryParams.search);
-      if (queryParams.level) searchParams.set('level', queryParams.level);
-      if (queryParams.status) searchParams.set('status', queryParams.status);
-      if (queryParams.department) searchParams.set('department', queryParams.department);
+      if (page) searchParams.set("page", String(page));
+      if (limit) searchParams.set("limit", String(limit));
+      if (search) searchParams.set("search", search);
+      if (level) searchParams.set("level", level);
+      if (status) searchParams.set("status", status);
+      if (department) searchParams.set("department", department);
 
       const url = `/api/students?${searchParams.toString()}`;
-      console.log('🔍 Fetching students from:', url);
-      console.log('📋 Query params:', queryParams);
-      
-      try {
-        const result = await api.get<any>(url);
-        console.log('✅ Students API response:', result);
-        console.log('📊 Raw result type:', typeof result);
-        console.log('📊 Raw result keys:', Object.keys(result || {}));
-        
-        // Handle different response structures
-        let studentsData, paginationData;
-        
-        if (Array.isArray(result)) {
-          // Direct array response
-          studentsData = result;
-          paginationData = undefined;
-        } else if (result.success && result.data) {
-          // Wrapped success response
-          studentsData = result.data;
-          paginationData = result.pagination;
-        } else if (result.data) {
-          // Simple data wrapper
-          studentsData = result.data;
-          paginationData = result.pagination;
-        } else {
-          // Fallback
-          studentsData = result;
-          paginationData = undefined;
-        }
-        
-        console.log('📊 Processed students data:', studentsData);
-        console.log('📊 Processed pagination:', paginationData);
-        
-        return {
-          data: studentsData || [],
-          pagination: paginationData
-        };
-      } catch (error) {
-        console.error('❌ Students API error:', error);
-        throw error;
+      const result = await api.get<any>(url);
+
+      // Normalize shapes: prefer { success, data } then { data }, else array
+      let studentsData, paginationData;
+      if (Array.isArray(result)) {
+        studentsData = result;
+      } else if (result?.success && result?.data) {
+        studentsData = result.data;
+        paginationData = result.pagination;
+      } else if (result?.data) {
+        studentsData = result.data;
+        paginationData = result.pagination;
+      } else {
+        studentsData = result;
       }
+
+      return {
+        data: studentsData || [],
+        pagination: paginationData || {
+          page: Number(page) || 1,
+          limit: Number(limit) || 50,
+          total: studentsData?.length || 0,
+          totalPages: 1,
+        },
+      };
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 60_000, // 1 minute
     refetchOnWindowFocus: false,
   });
 
-  // Real-time subscription for students
-  useEffect(() => {
-    const channel = supabase
-      .channel('students_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'students',
-        },
-        () => {
-          // Invalidate and refetch students when changes occur
-          queryClient.invalidateQueries({ queryKey: ['students'] });
-        }
-      )
-      .subscribe();
+  // Mutation for uploading files and creating upload records
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File): Promise<UploadRecord> => {
+      // Create FormData properly
+      const formData = new FormData();
+      formData.append("file", file);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+      const result = await api.post<{ data: UploadRecord }>(
+        "/api/students/uploads",
+        formData
+        // The request factory should handle FormData properly
+      );
 
-  // Mutation for creating students (single or bulk)
-  const createMutation = useMutation({
-    mutationFn: async (data: CreateStudentData | CreateStudentData[] | BulkUploadPayload): Promise<Student | Student[]> => {
-      const result = await api.post<Student | Student[]>('/api/students', data);
-      return result;
+      // Handle both { data: ... } and direct response formats
+      return result.data || result;
     },
-    onSuccess: (result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      const count = Array.isArray(result) ? result.length : 1;
+    onSuccess: (result) => {
       toast({
-        title: count > 1 ? 'Students Created' : 'Student Created',
-        description: count > 1 ? `${count} students have been successfully registered.` : `Student has been successfully registered.`,
+        title: "File Uploaded Successfully",
+        description: `Upload record created with ID ${result.id}`,
       });
-      
-      // Trigger upload completion callback if it's a bulk upload
-      if ('students' in variables && 'uploadMetadata' in variables && onUploadSuccess) {
-        onUploadSuccess(result, variables);
-      }
     },
-    onError: (error: any, variables) => {
-      console.error('Create student error:', error);
-      
-      // Handle specific authorization errors for non-superadmin users
-      if (error.status === 403 || error.code === 'FORBIDDEN') {
-        toast({
-          title: 'Access Denied',
-          description: 'Only superadmin users can manage student records. Please contact your administrator.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
+    onError: (error: any) => {
       if (error.response?.data?.error && error.response?.data?.details) {
         toast({
           title: error.response.data.error,
           description: error.response.data.details,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else if (error.response?.data?.error) {
         toast({
-          title: 'Failed to create student(s)',
+          title: "File Upload Failed",
           description: error.response.data.error,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         toast({
-          title: 'Failed to create student(s)',
-          description: 'An unexpected error occurred. Please try again.',
-          variant: 'destructive',
+          title: "File Upload Failed",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
         });
       }
-      
-      // Trigger upload failure callback if it's a bulk upload
-      if ('students' in variables && 'uploadMetadata' in variables && onUploadError) {
+    },
+  });
+
+  // Mutation for creating students (single or bulk)
+  const createMutation = useMutation({
+    mutationFn: async (
+      data: CreateStudentData | CreateStudentData[] | BulkUploadPayload
+    ): Promise<Student | Student[]> => {
+      const result = await api.post<Student | Student[]>("/api/students", data);
+      return result;
+    },
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      const count = Array.isArray(result) ? result.length : 1;
+      toast({
+        title: count > 1 ? "Students Created" : "Student Created",
+        description:
+          count > 1
+            ? `${count} students have been successfully registered.`
+            : `Student has been successfully registered.`,
+      });
+
+      if (
+        "students" in (variables as any) &&
+        "uploadMetadata" in (variables as any) &&
+        onUploadSuccess
+      ) {
+        onUploadSuccess(result, variables);
+      }
+    },
+    onError: (error: any, variables) => {
+      if (error.status === 403 || error.code === "FORBIDDEN") {
+        toast({
+          title: "Access Denied",
+          description:
+            "Only superadmin users can manage student records. Please contact your administrator.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (error.response?.data?.error && error.response?.data?.details) {
+        toast({
+          title: error.response.data.error,
+          description: error.response.data.details,
+          variant: "destructive",
+        });
+      } else if (error.response?.data?.error) {
+        toast({
+          title: "Failed to create student(s)",
+          description: error.response.data.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to create student(s)",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+
+      if (
+        "students" in (variables as any) &&
+        "uploadMetadata" in (variables as any) &&
+        onUploadError
+      ) {
         onUploadError(error, variables);
       }
     },
   });
 
-  // Mutation for updating students
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateStudentData }): Promise<Student> => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateStudentData;
+    }): Promise<Student> => {
       const result = await api.put<Student>(`/api/students/${id}`, data);
       return result;
     },
     onSuccess: (updatedStudent) => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       toast({
-        title: 'Student Updated',
+        title: "Student Updated",
         description: `${updatedStudent.full_name} has been updated successfully.`,
       });
     },
     onError: (error: any) => {
-      console.error('Update student error:', error);
       if (error.response?.data?.error && error.response?.data?.details) {
         toast({
           title: error.response.data.error,
           description: error.response.data.details,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else if (error.response?.data?.error) {
         toast({
-          title: 'Failed to update student',
+          title: "Failed to update student",
           description: error.response.data.error,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         toast({
-          title: 'Failed to update student',
-          description: 'An unexpected error occurred. Please try again.',
-          variant: 'destructive',
+          title: "Failed to update student",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
         });
       }
     },
   });
 
-  // Mutation for deleting students
   const deleteMutation = useMutation({
     mutationFn: async (id: string): Promise<{ message: string }> => {
-      const result = await api.delete<{ message: string }>(`/api/students/${id}`);
+      const result = await api.delete<{ message: string }>(
+        `/api/students/${id}`
+      );
       return result;
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      toast({
-        title: 'Student Deactivated',
-        description: result.message,
-      });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      toast({ title: "Student Deactivated", description: result.message });
     },
     onError: (error: any) => {
-      console.error('Delete student error:', error);
       if (error.response?.data?.error && error.response?.data?.details) {
         toast({
           title: error.response.data.error,
           description: error.response.data.details,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else if (error.response?.data?.error) {
         toast({
-          title: 'Failed to delete student',
+          title: "Failed to delete student",
           description: error.response.data.error,
-          variant: 'destructive',
+          variant: "destructive",
         });
       } else {
         toast({
-          title: 'Failed to delete student',
-          description: 'An unexpected error occurred. Please try again.',
-          variant: 'destructive',
+          title: "Failed to delete student",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
         });
       }
     },
   });
+
+  // Combined upload workflow method
+  const uploadStudentsWithFile = async (
+    file: File,
+    students: CreateStudentData[]
+  ): Promise<void> => {
+    try {
+      // Step 1: Upload file and create upload record
+      const uploadRecord = await new Promise<UploadRecord>(
+        (resolve, reject) => {
+          uploadFileMutation.mutate(file, {
+            onSuccess: resolve,
+            onError: reject,
+          });
+        }
+      );
+
+      // Step 2: Upload students with proper metadata
+      const uploadPayload: BulkUploadPayload = {
+        students,
+        uploadMetadata: {
+          student_upload_id: uploadRecord.id,
+          fileName: file.name,
+          fileSize: file.size,
+        },
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        createMutation.mutate(uploadPayload, {
+          onSuccess: () => resolve(),
+          onError: reject,
+        });
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
 
   return {
     students: query.data?.data || [],
@@ -308,10 +351,13 @@ export function useStudents(params: StudentsQueryParams = {}) {
     error: query.error,
     refetch: query.refetch,
     createStudent: createMutation.mutate,
+    uploadFile: uploadFileMutation.mutate,
     updateStudent: updateMutation.mutate,
     deleteStudent: deleteMutation.mutate,
+    uploadStudentsWithFile,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isUploadingFile: uploadFileMutation.isPending,
   };
 }
