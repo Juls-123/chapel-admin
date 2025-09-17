@@ -39,6 +39,7 @@ import { Separator } from "./ui/separator";
 import { AccountSwitcher } from "./AccountSwitcher";
 
 import { getCurrentUser } from "@/lib/auth"; // ✅ async
+import { initDevTools } from "@/lib/auth/dev-auth"; // ✅ Import the init function
 
 // Define type so TS knows what to expect
 type User = {
@@ -77,19 +78,25 @@ export function AppShell({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
+  // ✅ Initialize dev tools on client side
+  useEffect(() => {
+    initDevTools();
+  }, []);
+
   // Memoize active states to prevent infinite re-renders
   const activeStates = useMemo(() => {
     const navStates = navItems.reduce((acc, item) => {
-      acc[item.href] = pathname.startsWith(item.href) && 
-                      (item.href === "/" ? pathname === "/" : true);
+      acc[item.href] =
+        pathname.startsWith(item.href) &&
+        (item.href === "/" ? pathname === "/" : true);
       return acc;
     }, {} as Record<string, boolean>);
-    
+
     const settingsStates = settingsItems.reduce((acc, item) => {
       acc[item.href] = pathname.startsWith(item.href);
       return acc;
     }, {} as Record<string, boolean>);
-    
+
     return { ...navStates, ...settingsStates };
   }, [pathname]);
 
@@ -173,7 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </Link>
                   </SidebarMenuItem>
                 ))}
-                {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === "development" && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={() => setAccountSwitcherOpen(true)}
@@ -219,9 +226,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className="p-4 md:p-6">{children}</main>
       </SidebarInset>
-      
-      <AccountSwitcher 
-        open={accountSwitcherOpen} 
+
+      <AccountSwitcher
+        open={accountSwitcherOpen}
         onOpenChange={setAccountSwitcherOpen}
       />
     </SidebarProvider>

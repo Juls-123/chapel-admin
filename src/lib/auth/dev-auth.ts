@@ -166,11 +166,21 @@ export async function switchAccount(userType: keyof typeof DEV_USERS) {
   return result;
 }
 
-// Make switcher available globally in development
-if (
-  (typeof window !== "undefined" && process.env.NODE_ENV === "development") ||
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === "true"
-) {
+/**
+ * Initialize development tools
+ * Call this function in client-side components to set up global dev tools
+ */
+export function initDevTools() {
+  // Only run on client side and in development
+  if (typeof window === "undefined") return;
+
+  const shouldEnable =
+    process.env.NODE_ENV === "development" ||
+    process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === "true";
+
+  if (!shouldEnable) return;
+
+  // Make switcher available globally in development
   (window as any).devUserSwitcher = devUserSwitcher;
   console.log(
     "🛠️  Development user switcher available globally as window.devUserSwitcher"
