@@ -1,9 +1,9 @@
-// Development Auto-Login System for Real Supabase Auth
-// Provides seamless development experience with real authentication
+// Account Switching System for Real Supabase Auth
+// Provides seamless account switching for both development and production
 
 import { supabase } from "./supabase";
 
-// Development user accounts (these should exist in your Supabase Auth)
+// User accounts for switching (these should exist in your Supabase Auth)
 const DEV_USERS = {
   admin: {
     email: "SECRETARY@mtu.chapel",
@@ -18,8 +18,8 @@ const DEV_USERS = {
 } as const;
 
 /**
- * Auto-login function for development
- * Signs in with real Supabase Auth using development credentials
+ * Auto-login function for account switching
+ * Signs in with real Supabase Auth using predefined credentials
  */
 export async function devAutoLogin(
   userType: "admin" | "superadmin" = "superadmin"
@@ -51,7 +51,7 @@ export async function devAutoLogin(
 }
 
 /**
- * Easy user switching for development
+ * Easy user switching functions
  * Provides console-accessible functions for switching between users
  */
 export const devUserSwitcher = {
@@ -139,7 +139,7 @@ export const devUserSwitcher = {
 };
 
 /**
- * Get available development users for UI display
+ * Get available users for UI display
  */
 export function getDevUsers() {
   return Object.entries(DEV_USERS).map(([key, user]) => ({
@@ -171,23 +171,25 @@ export async function switchAccount(userType: keyof typeof DEV_USERS) {
  * Call this function in client-side components to set up global dev tools
  */
 export function initDevTools() {
-  // Only run on client side and in development
+  // Only run on client side
   if (typeof window === "undefined") return;
 
-  const shouldEnable =
+  // Always enable account switching (both dev and production)
+  // Only enable console dev tools in development or when explicitly enabled
+  const shouldEnableConsoleTools =
     process.env.NODE_ENV === "development" ||
     process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === "true";
 
-  if (!shouldEnable) return;
-
-  // Make switcher available globally in development
-  (window as any).devUserSwitcher = devUserSwitcher;
-  console.log(
-    "🛠️  Development user switcher available globally as window.devUserSwitcher"
-  );
-  console.log("📖 Available commands:");
-  console.log("   - devUserSwitcher.switchToAdmin()");
-  console.log("   - devUserSwitcher.switchToSuperAdmin()");
-  console.log("   - devUserSwitcher.getCurrentUser()");
-  console.log("   - devUserSwitcher.getSession()");
+  if (shouldEnableConsoleTools) {
+    // Make switcher available globally in development
+    (window as any).devUserSwitcher = devUserSwitcher;
+    console.log(
+      "🛠️  Development user switcher available globally as window.devUserSwitcher"
+    );
+    console.log("📖 Available commands:");
+    console.log("   - devUserSwitcher.switchToAdmin()");
+    console.log("   - devUserSwitcher.switchToSuperAdmin()");
+    console.log("   - devUserSwitcher.getCurrentUser()");
+    console.log("   - devUserSwitcher.getSession()");
+  }
 }

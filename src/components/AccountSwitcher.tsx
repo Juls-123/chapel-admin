@@ -52,10 +52,10 @@ export function AccountSwitcher({ open, onOpenChange }: AccountSwitcherProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Switch Development Account
+            Switch Account
           </DialogTitle>
           <DialogDescription>
-            Choose which development account to sign in as. The page will reload and redirect to dashboard.
+            Choose which account to sign in as. The page will reload and redirect to dashboard.
           </DialogDescription>
         </DialogHeader>
         
@@ -138,7 +138,7 @@ export function AccountSwitcher({ open, onOpenChange }: AccountSwitcherProps) {
           </Button>
           
           <div className="text-xs text-muted-foreground">
-            🛠️ Development Mode Only
+            🔄 Account Switcher
           </div>
         </div>
       </DialogContent>

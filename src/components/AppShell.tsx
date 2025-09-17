@@ -180,17 +180,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </Link>
                   </SidebarMenuItem>
                 ))}
-                {process.env.NODE_ENV === "development" && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => setAccountSwitcherOpen(true)}
-                      icon={<UserIcon />}
-                      tooltip={{ children: "Switch Account", side: "right" }}
-                    >
-                      <span>Switch Account</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setAccountSwitcherOpen(true)}
+                    icon={<UserIcon />}
+                    tooltip={{ children: "Switch Account", side: "right" }}
+                  >
+                    Switch Account
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarMenu>
