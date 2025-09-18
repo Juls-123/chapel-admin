@@ -4,6 +4,7 @@
 export { useStudents } from "./useStudents";
 export { useServices } from "./useServices";
 export { useAttendance } from "./useAttendance";
+export { useServiceAttendance } from "./useServiceAttendance";
 export { useSemesters } from "./useSemesters";
 export { useLevels } from "./useLevels";
 export { useToastExt } from "./useToastExt";

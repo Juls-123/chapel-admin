@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    // 2. Convert level UUID to level code
+    // 2. Convert level UUID to level code if needed
     let levelCode = level;
     if (level.length > 10 && level.includes("-")) {
       // If it's a UUID
@@ -70,15 +70,13 @@ export async function GET(request: NextRequest) {
       levelCode = levelData.code;
     }
 
-    // 3. Build storage path for absentees file
+    // 3. Build storage path and download absentees file
     const basePath = `attendance/${date}/${serviceId}/${levelCode}`;
     const absenteesPath = `${basePath}/absentees.json`;
-    const clearedPath = `${basePath}/manually_cleared.json`;
 
     console.log(`Attempting to download: ${absenteesPath}`);
 
     try {
-      // 3. Download absentees file from storage
       const { data: absenteesData, error: absenteesError } =
         await supabaseAdmin.storage.from(BUCKET).download(absenteesPath);
 
@@ -93,7 +91,6 @@ export async function GET(request: NextRequest) {
           return NextResponse.json([]);
         }
 
-        // Log the actual error for debugging
         console.error(
           "Full storage error:",
           JSON.stringify(absenteesError, null, 2)
@@ -109,40 +106,21 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // 4. Parse absentees data
+      // 4. Parse and return absentees data directly
       const absenteesText = await absenteesData.text();
       const absentStudents = JSON.parse(absenteesText);
 
-      // 5. Download manually cleared students to filter them out
-      let clearedStudentIds: string[] = [];
-      try {
-        const { data: clearedData, error: clearedError } =
-          await supabaseAdmin.storage.from(BUCKET).download(clearedPath);
+      // 5. Format response (keep the existing format for consistency)
+      const formattedStudents = absentStudents.map((student: any) => ({
+        matric_number: student.matric_number || "",
+        student_name: student.student_name || "",
+        level: level, // Use the requested level
+      }));
 
-        if (!clearedError && clearedData) {
-          const clearedText = await clearedData.text();
-          const clearedStudents = JSON.parse(clearedText);
-          clearedStudentIds = clearedStudents.map((s: any) => s.id);
-        }
-      } catch (clearedErr) {
-        // Cleared file might not exist yet, that's okay
-        console.log("No manually cleared file found, continuing...");
-      }
-
-      // 6. Filter out manually cleared students and format response
-      const filteredStudents = absentStudents
-        .filter((student: any) => !clearedStudentIds.includes(student.id))
-        .map((student: any) => ({
-          matric_number: student.matric_number || "",
-          student_name: student.student_name || "",
-          level: level, // Use the requested level
-        }));
-
-      return NextResponse.json(filteredStudents);
+      return NextResponse.json(formattedStudents);
     } catch (storageError) {
       console.error("Storage error:", storageError);
 
-      // If it's a parsing error, return more specific message
       if (storageError instanceof SyntaxError) {
         return NextResponse.json(
           {

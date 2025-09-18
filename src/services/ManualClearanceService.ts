@@ -20,6 +20,48 @@ type Student = Database["public"]["Tables"]["students"]["Row"];
 type OverrideReason =
   Database["public"]["Tables"]["override_reason_definitions"];
 
+// Enhanced attendance data interfaces
+interface OriginalAbsenteeRecord {
+  student_id: string;
+  matric_number: string;
+  student_name: string;
+  level: string;
+  gender: string;
+  unique_id: string;
+}
+
+interface EnhancedAbsenteeRecord extends OriginalAbsenteeRecord {
+  clearance?: {
+    status: 'cleared';
+    cleared_at: string;
+    cleared_by: string;
+    reason: string;
+    notes?: string;
+    admin_id: string;
+  };
+}
+
+interface ClearanceMetadata {
+  student_id: string;
+  cleared_at: string;
+  cleared_by: string;
+  reason: string;
+  notes?: string;
+  admin_id: string;
+}
+
+// Enhanced cleared record that maintains consistency with absentees format
+interface EnhancedClearedRecord extends OriginalAbsenteeRecord {
+  clearance: {
+    status: 'cleared';
+    cleared_at: string;
+    cleared_by: string;
+    reason: string;
+    notes?: string;
+    admin_id: string;
+  };
+}
+
 // Validation schemas
 const ClearanceParamsSchema = z.object({
   studentId: z.string().uuid("Invalid student ID format"),
@@ -215,7 +257,13 @@ export class ManualClearanceService {
         level,
         [studentId],
         "clear",
-        3
+        3,
+        {
+          adminId: admin.id,
+          adminEmail: admin.email,
+          reason: reason.display_name,
+          notes: comments,
+        }
       );
 
       const result = createdOverride;
@@ -375,14 +423,20 @@ export class ManualClearanceService {
     serviceId: string,
     level: string,
     studentIds: string[],
-    action: "clear" | "revert",
-    maxRetries: number = 3
+    action: "clear" | "revert" = "clear",
+    maxRetries: number = 3,
+    clearanceMetadata?: {
+      adminId: string;
+      adminEmail: string;
+      reason: string;
+      notes?: string;
+    }
   ): Promise<void> {
     let attempt = 0;
 
     while (attempt < maxRetries) {
       try {
-        await this.updateAttendanceFiles(serviceId, level, studentIds, action);
+        await this.updateAttendanceFiles(serviceId, level, studentIds, action, clearanceMetadata);
         return; // Success - exit retry loop
       } catch (error) {
         attempt++;
@@ -425,13 +479,20 @@ export class ManualClearanceService {
    * @param level Level code (e.g., '100', '200')
    * @param studentIds Array of student IDs to update
    * @param action Whether to 'clear' or 'revert' the clearance
+   * @param clearanceMetadata Optional metadata for clearance tracking
    * @throws {ClearanceError} If file operations fail
    */
   private static async updateAttendanceFiles(
     serviceId: string,
     level: string,
     studentIds: string[],
-    action: "clear" | "revert"
+    action: "clear" | "revert",
+    clearanceMetadata?: {
+      adminId: string;
+      adminEmail: string;
+      reason: string;
+      notes?: string;
+    }
   ): Promise<void> {
     try {
       // Get service date for file path (this query is now done in the main method)
@@ -487,7 +548,7 @@ export class ManualClearanceService {
 
         // Now safely update the files
         await this.updateAbsenteesFile(basePath, studentIds);
-        await this.updateClearedFile(basePath, studentIds);
+        await this.updateClearedFile(basePath, studentIds, clearanceMetadata);
       } finally {
         // Always clean up the lock file
         try {
@@ -510,7 +571,7 @@ export class ManualClearanceService {
   }
 
   /**
-   * Update the absentees.json file
+   * Update the absentees.json file - preserves original data structure
    * @private
    */
   private static async updateAbsenteesFile(
@@ -534,14 +595,16 @@ export class ManualClearanceService {
 
     if (absenteesData) {
       try {
-        const absentees = JSON.parse(await absenteesData.text());
+        const absentees: OriginalAbsenteeRecord[] = JSON.parse(await absenteesData.text());
+        
+        // Filter out cleared students using correct property name
         const updatedAbsentees = absentees.filter(
-          (s: { id: string }) => !studentIds.includes(s.id)
+          (student: OriginalAbsenteeRecord) => !studentIds.includes(student.student_id)
         );
 
         const { error: uploadError } = await supabaseAdmin.storage
           .from(this.BUCKET)
-          .upload(absenteesPath, JSON.stringify(updatedAbsentees), {
+          .upload(absenteesPath, JSON.stringify(updatedAbsentees, null, 2), {
             upsert: true,
             contentType: "application/json",
             cacheControl: "no-cache",
@@ -565,60 +628,115 @@ export class ManualClearanceService {
   }
 
   /**
-   * Update the manually_cleared.json file
+   * Update the manually_cleared.json file with consistent format
    * @private
    */
   private static async updateClearedFile(
     basePath: string,
-    studentIds: string[]
+    studentIds: string[],
+    clearanceMetadata?: {
+      adminId: string;
+      adminEmail: string;
+      reason: string;
+      notes?: string;
+    }
   ): Promise<void> {
     const clearedPath = `${basePath}/manually_cleared.json`;
+    const absenteesPath = `${basePath}/absentees.json`;
 
-    // Try to download existing file
-    const { data: clearedData, error: clearedDownloadError } =
-      await supabaseAdmin.storage.from(this.BUCKET).download(clearedPath);
+    // Download both existing cleared file and absentees file
+    const [clearedResult, absenteesResult] = await Promise.all([
+      supabaseAdmin.storage.from(this.BUCKET).download(clearedPath),
+      supabaseAdmin.storage.from(this.BUCKET).download(absenteesPath),
+    ]);
 
-    // Only throw error if it's NOT a "file not found" error
+    // Handle cleared file download errors (file not found is OK)
     if (
-      clearedDownloadError &&
-      clearedDownloadError.name !== "StorageApiError" && // File not found typically returns this
-      !((clearedDownloadError as any).originalError?.status === 400)
+      clearedResult.error &&
+      clearedResult.error.name !== "StorageApiError" &&
+      !((clearedResult.error as any).originalError?.status === 400)
     ) {
-      console.error("Unexpected storage error:", clearedDownloadError);
       throw new ClearanceError(
         "Failed to download cleared file",
         "STORAGE_DOWNLOAD_FAILED",
-        { path: clearedPath, error: clearedDownloadError }
+        { path: clearedPath, error: clearedResult.error }
       );
     }
 
-    // Parse existing data or use empty array (handles first-time creation)
-    const manuallyCleared: Array<{ id: string; clearedAt: string }> = [];
-    if (clearedData && !clearedDownloadError) {
+    // Handle absentees file download errors
+    if (
+      absenteesResult.error &&
+      absenteesResult.error.message !== "The resource was not found"
+    ) {
+      throw new ClearanceError(
+        "Failed to download absentees file for student data",
+        "STORAGE_DOWNLOAD_FAILED",
+        { path: absenteesPath, error: absenteesResult.error }
+      );
+    }
+
+    // Parse existing cleared data
+    const existingCleared: EnhancedClearedRecord[] = [];
+    if (clearedResult.data && !clearedResult.error) {
       try {
-        const parsedData = JSON.parse(await clearedData.text());
+        const parsedData = JSON.parse(await clearedResult.data.text());
         if (Array.isArray(parsedData)) {
-          manuallyCleared.push(...parsedData);
+          existingCleared.push(...parsedData);
         }
       } catch (parseError) {
         console.warn(
           "Error parsing cleared students file, starting fresh:",
           parseError
         );
-        // Continue with empty array - this is fine for corrupted files
       }
     }
 
-    // Update with new clearances
-    const newCleared = studentIds.map((id) => ({
-      id,
-      clearedAt: new Date().toISOString(),
-    }));
+    // Parse absentees data to get full student records
+    let absenteesData: OriginalAbsenteeRecord[] = [];
+    if (absenteesResult.data) {
+      try {
+        absenteesData = JSON.parse(await absenteesResult.data.text());
+      } catch (parseError) {
+        console.warn("Error parsing absentees file:", parseError);
+        absenteesData = [];
+      }
+    }
+
+    // Create enhanced cleared records with full student data
+    const newClearedRecords: EnhancedClearedRecord[] = [];
+    for (const studentId of studentIds) {
+      // Find the student's full record from absentees
+      const studentRecord = absenteesData.find(
+        (record) => record.student_id === studentId
+      );
+
+      if (studentRecord) {
+        // Create enhanced record with full student data + clearance info
+        const enhancedRecord: EnhancedClearedRecord = {
+          ...studentRecord, // Preserve all original fields
+          clearance: {
+            status: 'cleared',
+            cleared_at: new Date().toISOString(),
+            cleared_by: clearanceMetadata?.adminEmail || 'system',
+            admin_id: clearanceMetadata?.adminId || '',
+            reason: clearanceMetadata?.reason || 'Manual clearance',
+            notes: clearanceMetadata?.notes,
+          },
+        };
+        newClearedRecords.push(enhancedRecord);
+      } else {
+        console.warn(
+          `Student ${studentId} not found in absentees file, skipping clearance record`
+        );
+      }
+    }
 
     // Merge and deduplicate by student ID
     const updatedCleared = [
-      ...manuallyCleared.filter((c) => !studentIds.includes(c.id)),
-      ...newCleared,
+      ...existingCleared.filter(
+        (record) => !studentIds.includes(record.student_id)
+      ),
+      ...newClearedRecords,
     ];
 
     // Upload updated file (this will create the file if it doesn't exist)

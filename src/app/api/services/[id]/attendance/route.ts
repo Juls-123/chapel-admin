@@ -77,6 +77,7 @@ export async function GET(
             total_students: 0,
             present: 0,
             absent: 0,
+            exempted: 0,
             percentage: 0,
           },
         },
@@ -89,7 +90,9 @@ export async function GET(
     console.log("🔍 Fetching attendance batches...");
     const { data: batches, error: batchError } = await supabase
       .from("attendance_batches")
-      .select("id, attendees_path, absentees_path, exempted_path, version_number, created_at")
+      .select(
+        "id, attendees_path, absentees_path, exempted_path, version_number, created_at"
+      )
       .eq("attendance_upload_id", latestUpload.id)
       .order("version_number", { ascending: false })
       .limit(1);
@@ -113,6 +116,7 @@ export async function GET(
             total_students: 0,
             present: 0,
             absent: 0,
+            exempted: 0,
             percentage: 0,
           },
         },
@@ -121,10 +125,11 @@ export async function GET(
 
     const latestBatch = batches[0];
 
-    // Read attendees, absentees, and exempted JSON files from storage
+    // Read attendees, absentees, exempted, and manually cleared JSON files from storage
     let attendees: any[] = [];
     let absentees: any[] = [];
     let exempted: any[] = [];
+    let manuallyCleared: any[] = []; // NEW: Add manually cleared students
 
     try {
       // Download attendees file
@@ -165,6 +170,48 @@ export async function GET(
           exempted = JSON.parse(exemptedText);
         }
       }
+
+      // NEW: Download manually cleared file
+      // Construct the path based on service date and storage structure
+      const { data: serviceData } = await supabase
+        .from("services")
+        .select("service_date")
+        .eq("id", serviceId)
+        .single();
+
+      if (serviceData) {
+        const dateStr = new Date(serviceData.service_date)
+          .toISOString()
+          .split("T")[0];
+        const clearedPath = `attendance/${dateStr}/${serviceId}/${levelCode}/manually_cleared.json`;
+
+        const { data: clearedData, error: clearedError } =
+          await supabase.storage.from("attendance-scans").download(clearedPath);
+
+        if (!clearedError && clearedData) {
+          const clearedText = await clearedData.text();
+          const clearedRecords = JSON.parse(clearedText);
+
+          // Transform the manually cleared records to match attendance format
+          manuallyCleared = clearedRecords.map((record: any) => ({
+            student_id: record.student_id,
+            matric_number: record.matric_number,
+            student_name: record.student_name,
+            gender: record.gender,
+            level: record.level,
+            level_id: record.level_id,
+            unique_id: record.matric_number, // Use matric as unique_id
+            // Add clearance reason from the nested structure
+            reason: record.clearance?.reason || "Manually cleared",
+          }));
+
+          console.log(
+            `📋 Found ${manuallyCleared.length} manually cleared students`
+          );
+        } else {
+          console.log("📋 No manually cleared file found (this is normal)");
+        }
+      }
     } catch (jsonError) {
       console.error("Error parsing JSON files:", jsonError);
       return NextResponse.json(
@@ -173,7 +220,7 @@ export async function GET(
       );
     }
 
-    // Combine attendees, absentees, and exempted into a single attendance array
+    // Combine attendees, absentees, exempted, and manually cleared into a single attendance array
     const attendance = [
       ...attendees.map((student: any) => ({
         ...student,
@@ -187,6 +234,12 @@ export async function GET(
         ...student,
         status: "exempted",
       })),
+      // NEW: Add manually cleared students as exempted
+      ...manuallyCleared.map((student: any) => ({
+        ...student,
+        status: "exempted",
+        // Keep the clearance reason
+      })),
     ];
 
     // Sort by student ID for consistent ordering
@@ -196,13 +249,17 @@ export async function GET(
       return aId.localeCompare(bId);
     });
 
-    // Calculate summary statistics
+    // Calculate summary statistics (updated to include manually cleared)
     const totalStudents = attendance.length;
     const presentCount = attendees.length;
     const absentCount = absentees.length;
-    const exemptedCount = exempted.length;
+    const exemptedCount = exempted.length + manuallyCleared.length; // Include manually cleared
     const percentage =
       totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+
+    console.log(
+      `📊 Attendance Summary: ${presentCount} present, ${absentCount} absent, ${exemptedCount} exempted (${manuallyCleared.length} manually cleared), ${totalStudents} total`
+    );
 
     return NextResponse.json({
       success: true,

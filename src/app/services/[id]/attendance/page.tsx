@@ -2,7 +2,6 @@
 
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,8 +42,11 @@ import {
   FileText,
 } from "lucide-react";
 import { UIStateWrapper } from "@/components/ui-states/UIStateWrapper";
+import {
+  useServiceAttendance,
+  type AttendanceRecord,
+} from "@/hooks/useServiceAttendance";
 import { api } from "@/lib/requestFactory";
-import type { Database } from "@/lib/types/generated";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -53,34 +55,6 @@ declare module "jspdf" {
   interface jsPDF {
     autoTable: typeof autoTable;
   }
-}
-
-interface AttendanceRecord {
-  unique_id: string;
-  level: string | number;
-  gender: string;
-  student_id: string;
-  matric_number: string;
-  student_name: string;
-  status: "present" | "absent" | "exempted";
-  reason?: string; // For exempted students
-}
-
-interface AttendanceData {
-  service_id: string;
-  level_code: string;
-  level_name: string;
-  upload_id?: string;
-  upload_date?: string;
-  attendance: AttendanceRecord[];
-  summary: {
-    total_students: number;
-    present: number;
-    absent: number;
-    exempted: number;
-    percentage: number;
-  };
-  batches_processed?: number;
 }
 
 interface AttendancePageProps {
@@ -113,37 +87,16 @@ export default function AttendancePage({ params }: AttendancePageProps) {
     "attendees" | "absentees" | "full"
   >("full");
 
-  // Fetch service details
-  const { data: service, isLoading: serviceLoading } = useQuery({
-    queryKey: ["service", serviceId],
-    queryFn: async () => {
-      const result = await api.get<
-        Database["public"]["Tables"]["services"]["Row"] & {
-          service_levels?: Array<{
-            level: { code: string; name: string };
-          }>;
-        }
-      >(`/api/services/${serviceId}`);
-      return result;
-    },
-  });
-
-  // Fetch attendance data for current level using consolidated API
+  // Use the service attendance hook with manual clearance integration
   const {
-    data: attendanceResponse,
-    isLoading: attendanceLoading,
-    refetch: refetchAttendance,
-    error: attendanceError,
-  } = useQuery({
-    queryKey: ["service-attendance", serviceId, activeLevel],
-    queryFn: async (): Promise<AttendanceData> => {
-      const result = await api.get<AttendanceData>(
-        `/api/services/${serviceId}/attendance?level_code=${activeLevel}`
-      );
-      return result;
-    },
-    enabled: !!serviceId && !!activeLevel,
-  });
+    service,
+    serviceLoading,
+    attendanceData: attendanceResponse,
+    attendanceLoading,
+    attendanceError,
+    getServiceLevels,
+    refetchAttendance,
+  } = useServiceAttendance({ serviceId, activeLevel });
 
   const attendanceData = attendanceResponse?.attendance || [];
   const stats = attendanceResponse?.summary || {
@@ -232,7 +185,9 @@ export default function AttendancePage({ params }: AttendancePageProps) {
   };
 
   const handlePDFExport = async () => {
-    const exportData = await api.get<AttendanceData>(
+    // For PDF export, we need to fetch fresh data for the selected level
+    // since we might be exporting a different level than currently viewed
+    const exportData = await api.get<typeof attendanceResponse>(
       `/api/services/${serviceId}/attendance?level_code=${exportLevel}`
     );
 
@@ -240,20 +195,22 @@ export default function AttendancePage({ params }: AttendancePageProps) {
 
     if (exportType === "attendees") {
       dataToExport = dataToExport.filter(
-        (record: { status: string }) => record.status === "present"
+        (record: AttendanceRecord) => record.status === "present"
       );
     } else if (exportType === "absentees") {
       dataToExport = dataToExport.filter(
-        (record: { status: string }) => record.status === "absent"
+        (record: AttendanceRecord) => record.status === "absent"
       );
     }
 
-    const tableData = dataToExport.map((record: any) => [
+    const tableData = dataToExport.map((record: AttendanceRecord) => [
       record.matric_number,
       record.student_name,
       record.level,
       record.gender,
-      record.status,
+      record.status === "exempted" && record.reason
+        ? `${record.status} (${record.reason})`
+        : record.status,
     ]);
 
     const pdf = new jsPDF();
@@ -270,12 +227,6 @@ export default function AttendancePage({ params }: AttendancePageProps) {
     });
 
     pdf.save(`attendance-${service?.name || "service"}-${exportLevel}L.pdf`);
-  };
-
-  const getServiceLevels = () => {
-    if (!service?.service_levels) return "All Levels";
-
-    return service.service_levels.map((sl) => `${sl.level.code}L`).join(", ");
   };
 
   return (
