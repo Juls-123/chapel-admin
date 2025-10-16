@@ -32,6 +32,9 @@ export interface CreateServiceInput {
 }
 
 export class ServiceService {
+  exportAttendance(id: string, format: string): { filename: any; mime: any; content: any; } | PromiseLike<{ filename: any; mime: any; content: any; }> {
+    throw new Error("Method not implemented.");
+  }
   private supabase: SupabaseClient<Database>;
 
   constructor(client?: SupabaseClient<Database>) {
