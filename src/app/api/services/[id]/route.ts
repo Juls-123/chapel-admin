@@ -23,7 +23,7 @@ const updateServiceSchema = z.object({
   applicable_levels: z.array(z.string()).optional(),
   gender_constraint: z.enum(["male", "female", "both"]).optional(),
   status: z
-    .enum(["scheduled", "active", "completed", "canceled", "cancelled"])
+    .enum(["scheduled", "active", "completed", "canceled"])
     .optional(),
 });
 
@@ -181,24 +181,65 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
     const resolvedParams = await params;
     const id = resolvedParams.id;
     const body = await request.json();
-    // Accept partial fields per workflow Service shape (UI enums)
+    
+    console.log('Update service request:', { id, body });
+    
     const parsed = updateServiceSchema.safeParse(body);
     if (!parsed.success) {
+      console.error('Validation failed:', parsed.error);
       return NextResponse.json(
         { error: "Validation failed", details: parsed.error.errors },
         { status: 400 }
       );
     }
+    
     const svc = new ServiceService();
-    const updated = await svc.updateService(id, parsed.data as any);
+    
+    // Transform the data to match what updateService expects
+    const updateData: any = {};
+    
+    // Handle service type
+    if (parsed.data.service_type) {
+      updateData.type = parsed.data.service_type === 'devotion' 
+        ? parsed.data.devotion_type 
+        : 'special';
+    }
+    
+    // Pass date and time separately
+    if (parsed.data.date) {
+      updateData.date = parsed.data.date;
+    }
+    if (parsed.data.time) {
+      updateData.time = parsed.data.time;
+    }
+    
+    // Handle other fields
+    if (parsed.data.name !== undefined) {
+      updateData.name = parsed.data.name;
+    }
+    if (parsed.data.status) {
+      updateData.status = parsed.data.status;
+    }
+    if (parsed.data.gender_constraint) {
+      updateData.gender_constraint = parsed.data.gender_constraint;
+    }
+    if (parsed.data.applicable_levels) {
+      updateData.levels = parsed.data.applicable_levels;
+    }
+    
+    console.log('Transformed update data:', updateData);
+    
+    const updated = await svc.updateService(id, updateData);
+    
     return NextResponse.json(updated);
   } catch (error) {
+    console.error('Error updating service:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: (error as any)?.message },
       { status: (error as any)?.status || 500 }
     );
   }
@@ -284,7 +325,7 @@ export async function DELETE(
     );
 
     return NextResponse.json({
-      message: "Service cancelled successfully",
+      message: "Service canceled successfully",
     });
   } catch (error) {
     return NextResponse.json(

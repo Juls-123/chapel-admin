@@ -313,7 +313,8 @@ export function ServiceTable({
                         {service.status}
                       </Badge>
                       <div className="flex gap-1">
-                        {service.status === "active" && (
+                        {(service.status === "active" ||
+                          service.status === "scheduled") && (
                           <Button
                             variant="outline"
                             size="sm"

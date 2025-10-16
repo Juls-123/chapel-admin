@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
 import { useEffect } from "react";
 import { getAuthHeaders } from "@/lib/auth";
+import { ServiceItem, ServiceStatus } from "@/services/ServiceService";
 
 // Workflow-level types (API shapes)
 export interface Service {
@@ -108,28 +109,132 @@ async function fetchService(id: string): Promise<Service> {
   return (result?.data || result) as Service;
 }
 
-async function updateService(
+async function updateService(this: any, 
   id: string,
-  serviceData: UpdateServiceData
-): Promise<Service> {
-  const headers = await getAuthHeaders();
-  const response = await fetch(`/api/services/${id}`, {
-    method: "PUT",
-    headers: {
-      ...headers,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(serviceData),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.details || error.error || "Failed to update service");
+  updates: Partial<ServiceItem> & { 
+    time?: string; 
+    levels?: string[];
+    gender_constraint?: 'male' | 'female' | 'both';
+  }
+): Promise<ServiceItem> {
+  const dbUpdate: any = {};
+  
+  // Handle service type
+  if (updates.type) {
+    const isSpecial = updates.type === "special";
+    dbUpdate.service_type = isSpecial ? "special" : "devotion";
+    dbUpdate.devotion_type = isSpecial ? null : updates.type;
+  }
+  
+  // Handle date - now it's just the date string
+  if (updates.date) {
+    dbUpdate.service_date = updates.date; // Already in "yyyy-MM-dd" format
+  }
+  
+  // Handle time separately
+  if ((updates as any).time) {
+    dbUpdate.service_time = (updates as any).time; // "HH:mm" format
+  }
+  
+  // Handle status
+  if (updates.status) {
+    dbUpdate.status = updates.status;
+  }
+  
+  // Handle name
+  if (typeof updates.name !== "undefined") {
+    dbUpdate.name = updates.name ?? null;
+  }
+  
+  // Handle gender constraint
+  if ((updates as any).gender_constraint) {
+    dbUpdate.gender_constraint = (updates as any).gender_constraint;
   }
 
-  const result = await response.json();
-  // Our API returns the updated service item directly
-  return (result?.data || result) as Service;
+  // Update the main service record
+  const { data: updated, error } = await this.supabase
+    .from("services")
+    .update(dbUpdate)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error || !updated) {
+    throw Object.assign(new Error("Failed to update service"), {
+      status: 500,
+      code: "SERVICE_UPDATE_FAILED",
+      details: error?.message,
+    });
+  }
+
+  // Handle levels if provided
+  let levelsOut: { id: string; code: string; name: string | null }[] = [];
+  
+  if (Array.isArray((updates as any).levels)) {
+    const levelIds = (updates as any).levels as string[]; // These are UUIDs
+    
+    // Delete existing service_levels entries
+    await this.supabase
+      .from("service_levels")
+      .delete()
+      .eq("service_id", id);
+    
+    // Insert new service_levels entries
+    if (levelIds.length > 0) {
+      const inserts = levelIds.map(levelId => ({
+        service_id: id,
+        level_id: levelId,
+      }));
+      
+      await this.supabase
+        .from("service_levels")
+        .insert(inserts);
+    }
+    
+    // Fetch the full level data
+    if (levelIds.length > 0) {
+      const { data: levelData } = await this.supabase
+        .from("levels")
+        .select("id, code, name")
+        .in("id", levelIds);
+      
+      levelsOut = levelData || [];
+    }
+  } else {
+    // If levels weren't updated, fetch existing ones
+    const { data: serviceLevels } = await this.supabase
+      .from("service_levels")
+      .select("level_id, levels(id, code, name)")
+      .eq("service_id", id);
+    
+    levelsOut = (serviceLevels || []).map((sl: any) => ({
+      id: sl.levels?.id,
+      code: sl.levels?.code,
+      name: sl.levels?.name,
+    }));
+  }
+
+  // Construct the datetime string for the response
+  let dateString = updated.service_date;
+  if (updated.service_time) {
+    const timeFormatted = updated.service_time.substring(0, 5);
+    dateString = `${updated.service_date}T${timeFormatted}:00.000Z`;
+  }
+
+  return {
+    id: updated.id,
+    type:
+      updated.service_type !== "devotion"
+        ? "special"
+        : updated.devotion_type === "evening"
+        ? "evening"
+        : "morning",
+    date: dateString,
+    status: updated.status as ServiceStatus,
+    levels: levelsOut,
+    name: updated.name || undefined,
+    gender_constraint: updated.gender_constraint,
+  };
 }
 
 async function deleteService(id: string): Promise<void> {

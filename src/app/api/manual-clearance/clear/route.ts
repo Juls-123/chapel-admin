@@ -26,7 +26,7 @@ const clearSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Require admin authentication
-    const { admin } = await requireAdmin(request);
+    const { admin } = await requireAdmin();
 
     // Parse and validate request body
     const body = await request.json();

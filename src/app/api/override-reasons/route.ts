@@ -30,7 +30,7 @@ const createOverrideReasonSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get("active_only") === "true";
 
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request, { role: "superadmin" });
+    const { admin } = await requireAdmin({ role: "superadmin" });
 
     const body = await request.json();
 

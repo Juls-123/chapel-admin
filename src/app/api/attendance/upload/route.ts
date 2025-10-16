@@ -10,7 +10,7 @@ const uploadSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request);
+    const { admin } = await requireAdmin();
 
     const formData = await request.formData();
     const file = formData.get("file") as File;

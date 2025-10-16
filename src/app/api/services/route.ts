@@ -89,7 +89,7 @@ async function logAdminAction(
 export async function GET(request: NextRequest) {
   try {
     // Any admin can view services
-    await requireAdmin(request);
+    await requireAdmin();
     const service = new ServiceService();
     const { searchParams } = new URL(request.url);
 
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request); // allow any admin to create per workflow
+    const { admin } = await requireAdmin(); // allow any admin to create per workflow
 
     const body = await request.json();
     const parsed = createServiceSchema.safeParse(body);

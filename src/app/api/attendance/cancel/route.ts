@@ -9,7 +9,7 @@ const cancelSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAdmin(request);
+    const user = await requireAdmin();
 
     const body = await request.json();
     const validation = cancelSchema.safeParse(body);
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const attendanceService = new AttendanceService();
 
     // Cancel the upload
-    await attendanceService.cancelAttendanceUpload(uploadId, user.id);
+    await attendanceService.cancelAttendanceUpload(uploadId, user.admin.id);
 
     return NextResponse.json({
       success: true,

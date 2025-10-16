@@ -21,7 +21,7 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
     
     const { searchParams } = new URL(request.url);
     const result = querySchema.safeParse({

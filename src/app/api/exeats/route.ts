@@ -222,6 +222,8 @@ export async function GET(request: NextRequest) {
         student_id: exeat.student_id,
         student_name: `${student?.first_name || ''} ${student?.middle_name || ''} ${student?.last_name || ''}`.trim(),
         matric_number: student?.matric_number || '',
+        level: level?.code || '',
+        level_name: level?.name || '',
         start_date: exeat.start_date,
         end_date: exeat.end_date,
         reason: exeat.reason,
@@ -248,11 +250,6 @@ export async function GET(request: NextRequest) {
       data: transformedExeats,
       pagination
     };
-
-    console.log('✅ Exeats API - Sending response:', {
-      dataCount: response.data.length,
-      pagination: response.pagination
-    });
 
     return NextResponse.json(response);
 

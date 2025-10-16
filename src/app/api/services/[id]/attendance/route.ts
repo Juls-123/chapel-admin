@@ -23,7 +23,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
 
     const resolvedParams = await params;
     const serviceId = resolvedParams.id;
@@ -294,7 +294,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
 
     const resolvedParams = await params;
     const serviceId = resolvedParams.id;

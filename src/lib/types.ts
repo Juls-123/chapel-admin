@@ -44,8 +44,8 @@ export const mapServiceTypeUiToDb = (t: ServiceTypeUi): ServiceTypeDb => {
 
 // View models: extend DB rows minimally with derived UI fields
 export type Student = StudentRow & {
-  level?: number; // derived from levels.code
-  level_name?: string; // derived from levels.name
+  level?: number|null; // derived from levels.code
+  level_name?: string|null; // derived from levels.name
 };
 
 export type Service = ServiceRow & {

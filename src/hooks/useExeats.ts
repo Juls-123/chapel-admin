@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { api } from '@/lib/requestFactory';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/auth/supabase';
 import { getAuthHeaders } from '@/lib/auth';
+import { processExeatData } from '@/lib/utils/exeat';
 
 // Types
 export interface Exeat {
@@ -11,12 +12,13 @@ export interface Exeat {
   student_id: string;
   student_name: string;
   matric_number: string;
-  level?: string;
+  level?: string;        // Level code (e.g., '100', '200')
+  level_name?: string;   // Full level name (e.g., '100 Level')
   start_date: string;
   end_date: string;
   reason?: string;
-  status: 'active' | 'ended' | 'canceled';
-  derived_status: 'active' | 'upcoming' | 'past' | 'canceled' | 'ended';
+  status: 'active' | 'past' | 'canceled';
+  derived_status: 'active' | 'past' | 'canceled';
   created_by: string;
   created_at: string;
 }
@@ -45,13 +47,13 @@ export interface UpdateExeatData {
   start_date?: string;
   end_date?: string;
   reason?: string;
-  status?: 'active' | 'ended' | 'canceled';
+  status?: 'active' | 'past' | 'canceled';
 }
 
 export interface ExeatFilters {
   page?: number;
   limit?: number;
-  status?: 'active' | 'ended' | 'canceled';
+  status?: 'active' | 'past' | 'canceled';
   student_id?: string;
   search?: string;
   start_date_from?: string;
@@ -76,11 +78,6 @@ export function useExeats(filters: ExeatFilters = {}) {
       if (filters.start_date_from) searchParams.set('start_date_from', filters.start_date_from);
       if (filters.start_date_to) searchParams.set('start_date_to', filters.start_date_to);
 
-      console.log('🔍 Exeats API Query:', {
-        url: `/api/exeats?${searchParams.toString()}`,
-        params: Object.fromEntries(searchParams.entries())
-      });
-
       // Make direct fetch call to get the full response structure
       const authHeaders = await getAuthHeaders();
       const response = await fetch(`/api/exeats?${searchParams.toString()}`, {
@@ -97,21 +94,21 @@ export function useExeats(filters: ExeatFilters = {}) {
 
       const result = await response.json();
       
-      console.log('📊 Exeats API Response:', {
-        responseType: typeof result,
-        hasDataProperty: 'data' in result,
-        hasPaginationProperty: 'pagination' in result,
-        responseKeys: Object.keys(result),
-        dataCount: result?.data?.length || 0
-      });
-
       // Validate response structure
       if (result && typeof result === 'object' && 'data' in result && 'pagination' in result) {
+        // Process exeats to set derived_status based on current date
+        const processedData = processExeatData(result.data);
+        
         // Ensure pagination has currentPage field
-        const response = result as ExeatsResponse;
+        const response = {
+          ...result,
+          data: processedData
+        } as ExeatsResponse;
+        
         if (!response.pagination.currentPage) {
           response.pagination.currentPage = response.pagination.page;
         }
+        
         return response;
       }
 

@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/table";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { UIStateWrapper } from "@/components/ui-states/UIStateWrapper";
+import { Eye } from "lucide-react";
+import { RawDataModal } from "@/components/ui/raw-data-modal";
+import { parseRawData } from "@/lib/utils/parse-raw-data";
 
 interface AttendanceIssuesTabProps {
   serviceId?: string;
@@ -46,6 +49,9 @@ export function AttendanceIssuesTab({
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
+  const [selectedIssue, setSelectedIssue] = useState<{ rawData: any } | null>(
+    null
+  );
 
   return (
     <Card>
@@ -97,6 +103,7 @@ export function AttendanceIssuesTab({
                   <TableHead>Status</TableHead>
                   <TableHead>Batch</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -151,6 +158,18 @@ export function AttendanceIssuesTab({
                           : "Unknown"}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setSelectedIssue({ rawData: issue.raw_data })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">View raw data</span>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -190,6 +209,11 @@ export function AttendanceIssuesTab({
           )}
         </UIStateWrapper>
       </CardContent>
+      <RawDataModal
+        data={selectedIssue ? parseRawData(selectedIssue.rawData) : null}
+        isOpen={!!selectedIssue}
+        onClose={() => setSelectedIssue(null)}
+      />
     </Card>
   );
 }

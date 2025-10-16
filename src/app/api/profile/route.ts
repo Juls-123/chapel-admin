@@ -11,7 +11,7 @@ const supabaseAdmin = createClient<Database>(
 
 export async function GET(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request);
+    const { admin } = await requireAdmin();
 
     // Get admin profile from database (by admin id)
     const { data: adminRow, error: adminError } = await supabaseAdmin
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request, { role: "superadmin" });
+    const { admin } = await requireAdmin({ role: "superadmin" });
 
     const body = await request.json();
 

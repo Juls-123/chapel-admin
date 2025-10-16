@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
     const url = new URL(request.url);
     const format = (url.searchParams.get("format") || "csv").toLowerCase() as
       | "csv"

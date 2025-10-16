@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin(request); // any admin can update status per workflow
+    await requireAdmin(); // any admin can update status per workflow
 
     const body = await request.json();
     const schema = z.object({ status: z.enum(["completed", "canceled"]) });

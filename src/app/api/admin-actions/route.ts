@@ -78,7 +78,7 @@ const createAdminActionSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "50");
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request);
+    const { admin } = await requireAdmin();
 
     const body = await request.json();
     const validationResult = createAdminActionSchema.safeParse(body);

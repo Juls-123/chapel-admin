@@ -28,7 +28,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    await requireAdmin(request);
+    await requireAdmin();
 
     const service = new StudentService();
     const student = await service.getById(id);
@@ -53,7 +53,7 @@ export async function PUT(
   try {
     const { id } = await params;
 
-    await requireAdmin(request, { role: "superadmin" });
+    await requireAdmin({ role: "superadmin" });
 
     const body = await request.json();
     const validationResult = updateStudentSchema.safeParse(body);
@@ -83,7 +83,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    await requireAdmin(request, { role: "superadmin" });
+    await requireAdmin({ role: "superadmin" });
 
     const service = new StudentService();
     const student = await service.getById(id);

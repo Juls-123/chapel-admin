@@ -11,7 +11,7 @@ const supabaseAdmin = createClient<Database>(
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
 
     // Fetch all levels from the database
     const { data: levels, error: levelsError } = await supabaseAdmin

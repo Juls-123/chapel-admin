@@ -9,7 +9,7 @@ const confirmSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request);
+    const { admin } = await requireAdmin();
 
     const body = await request.json();
     const validation = confirmSchema.safeParse(body);

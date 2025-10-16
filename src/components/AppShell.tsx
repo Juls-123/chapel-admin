@@ -13,10 +13,12 @@ import {
   ClipboardCheck,
   Settings,
   User as UserIcon,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useEffect, useState, useMemo } from "react";
+import { ReactNode, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   SidebarProvider,
@@ -33,23 +35,15 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
-import { AccountSwitcher } from "./AccountSwitcher";
 
-import { getCurrentUser } from "@/lib/auth"; // ✅ async
-import { initDevTools } from "@/lib/auth/dev-auth"; // ✅ Import the init function
-
-// Define type so TS knows what to expect
-type User = {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-};
+import { signOut } from "@/lib/auth";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/services", label: "Services", icon: CalendarCheck },
   { href: "/students", label: "Students", icon: Users },
   { href: "/exeats", label: "Exeat Manager", icon: UserMinus },
@@ -66,22 +60,9 @@ const settingsItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [accountSwitcherOpen, setAccountSwitcherOpen] = useState(false);
-
-  // ✅ Fetch async user once on mount
-  useEffect(() => {
-    const fetchUser = async () => {
-      const u = await getCurrentUser();
-      setUser(u);
-    };
-    fetchUser();
-  }, []);
-
-  // ✅ Initialize dev tools on client side
-  useEffect(() => {
-    initDevTools();
-  }, []);
+  const router = useRouter();
+  const { user } = useGlobalContext(); // ✅ Use global context instead of local state
+  3;
 
   // Memoize active states to prevent infinite re-renders
   const activeStates = useMemo(() => {
@@ -132,10 +113,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   const getDisplayName = () => {
-    if (user?.firstName || user?.lastName) {
-      return `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    // Type-safe access to user properties
+    const firstName = (user as any)?.firstName || "";
+    const lastName = (user as any)?.lastName || "";
+
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
     }
     return user?.email?.split("@")[0] || "User";
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
@@ -180,39 +175,42 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </Link>
                   </SidebarMenuItem>
                 ))}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setAccountSwitcherOpen(true)}
-                    icon={<UserIcon />}
-                    tooltip={{ children: "Switch Account", side: "right" }}
-                  >
-                    Switch Account
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-          <Separator className="my-2" />
-          <Link href="/profile">
-            <div className="flex items-center justify-between p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {user?.firstName?.[0] || user?.email?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col text-sm">
-                  <span className="font-semibold">{getDisplayName()}</span>
-                  <span className="text-muted-foreground">{user?.email}</span>
+        <SidebarFooter className="space-y-2">
+          <div className="px-2">
+            <Separator className="my-2" />
+            <Link href="/profile">
+              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      {user?.name?.[0] || user?.email?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col text-sm">
+                    <span className="font-semibold">{getDisplayName()}</span>
+                    <span className="text-muted-foreground">{user?.email}</span>
+                  </div>
                 </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </Link>
+            </Link>
+          </div>
+          <div className="px-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Log out</span>
+            </Button>
+          </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -224,11 +222,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className="p-4 md:p-6">{children}</main>
       </SidebarInset>
-
-      <AccountSwitcher
-        open={accountSwitcherOpen}
-        onOpenChange={setAccountSwitcherOpen}
-      />
     </SidebarProvider>
   );
 }

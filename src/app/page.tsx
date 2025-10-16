@@ -1,287 +1,157 @@
+"use client";
 
-import {
-  Activity,
-  CalendarCheck,
-  CalendarClock,
-  UserCheck,
-  Users,
-  FileUp,
-  MailWarning,
-  PlusCircle,
-  UserX,
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { format } from 'date-fns';
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
-import { AppShell } from '@/components/AppShell';
-import { PageHeader } from '@/components/PageHeader';
-import { StatCard } from '@/components/StatCard';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { recentActions, services, students, attendanceRecords } from '@/lib/mock-data';
-import type { Service, AttendanceRecord, Student } from '@/lib/types';
-import { cn } from '@/lib/utils';
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
 
-interface AbsenteeSummary {
-    matric_number: string;
-    student_name: string;
-    absences: number;
-}
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
 
-const getFullName = (student: Student) => `${student.first_name} ${student.middle_name} ${student.last_name}`;
-const getInitials = (student: Student) => `${student.first_name[0]}${student.last_name[0]}`;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
 
-export default function DashboardPage() {
-  const todayServices = services.filter(
-    (service) =>
-      new Date(service.date).toDateString() === new Date().toDateString()
-  );
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  const absenteeCounts = attendanceRecords
-    .filter(record => record.status === 'absent')
-    .reduce((acc, record) => {
-        acc[record.matric_number] = (acc[record.matric_number] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+      if (error) throw error;
 
-  const topAbsentees: AbsenteeSummary[] = Object.entries(absenteeCounts)
-    .map(([matric_number, absences]) => {
-        const student = students.find(s => s.matric_number === matric_number);
-        return {
-            matric_number,
-            student_name: student ? getFullName(student) : 'Unknown Student',
-            absences,
-        };
-    })
-    .sort((a, b) => b.absences - a.absences)
-    .slice(0, 5);
-
+      // ✅ Use router.push instead of window.location.reload()
+      router.push(redirectTo);
+      router.refresh(); // Refresh server components
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error?.message || "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Dashboard"
-        description={`Welcome back! Here's a summary for ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`}
-      />
-      <div className="grid gap-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Scanned (Today)"
-            value="1,203"
-            icon={UserCheck}
-            change="+15.2% from yesterday"
-          />
-          <StatCard
-            title="Current Absentees"
-            value="42"
-            icon={UserX}
-            change="-5 since last service"
-          />
-          <StatCard
-            title="Pending Warnings"
-            value="18"
-            icon={MailWarning}
-            change="3 new this week"
-          />
-          <StatCard
-            title="Recent Exeats"
-            value="7"
-            icon={CalendarClock}
-            change="2 ending today"
-          />
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Chapel Admin
+          </h1>
+          <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
+            Sign in to your account
+          </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle>Today's Services</CardTitle>
-                <CardDescription>
-                  Status of services scheduled for today.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {todayServices.length > 0 ? (
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    {todayServices.map((service) => (
-                      <ServiceCard key={service.id} service={service} />
-                    ))}
-                  </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4 rounded-md bg-white px-4 py-8 shadow sm:px-10">
+            <div>
+              <Label htmlFor="email">Email address</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 block w-full"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 block w-full"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            <div>
+              <Button
+                type="submit"
+                className="w-full justify-center"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Signing in...
+                  </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-muted bg-muted/50 p-8 text-center">
-                    <div className="rounded-full bg-background p-3">
-                      <CalendarCheck className="size-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground">
-                      No services scheduled for today.
-                    </p>
-                  </div>
+                  "Sign in"
                 )}
-              </CardContent>
-            </Card>
+              </Button>
+            </div>
           </div>
+        </form>
 
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <Link href="/services">
-                <Button className="w-full justify-start">
-                  <PlusCircle />
-                  Create Service
-                </Button>
-              </Link>
-              <Link href="/exeats">
-                <Button variant="secondary" className="w-full justify-start">
-                  <Users />
-                  Add Exeat
-                </Button>
-              </Link>
-              <Link href="/attendance">
-                <Button variant="secondary" className="w-full justify-start">
-                  <FileUp />
-                  Upload Attendance
-                </Button>
-              </Link>
-              <Link href="/absentees">
-                <Button variant="secondary" className="w-full justify-start">
-                  <UserX />
-                  Review Absentees
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="shadow-sm lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Recent Admin Actions</CardTitle>
-              <CardDescription>An audit trail of recent activities.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Admin</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead className="text-right">Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentActions.map((action) => (
-                    <TableRow key={action.id}>
-                      <TableCell className="font-medium">
-                        {action.admin_name}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <span className="font-medium">{action.action}</span>{' '}
-                          <span className="text-muted-foreground">{action.target}</span>
-                        </div>
-                        {action.description && (
-                          <p className="text-sm text-muted-foreground">{action.description}</p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {new Date(action.date).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm">
-            <CardHeader>
-                <CardTitle>Absentee Alerts</CardTitle>
-                <CardDescription>Top 5 students with the most absences this month.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {topAbsentees.map(summary => {
-                        const student = students.find(s => s.matric_number === summary.matric_number);
-                        return (
-                            <div key={summary.matric_number} className="flex items-center">
-                                <Avatar className="h-9 w-9">
-                                    <AvatarFallback>{student ? getInitials(student) : 'U'}</AvatarFallback>
-                                </Avatar>
-                                <div className="ml-4 space-y-1">
-                                    <p className="text-sm font-medium leading-none">{summary.student_name}</p>
-                                    <p className="text-sm text-muted-foreground">{summary.matric_number}</p>
-                                </div>
-                                <div className="ml-auto font-medium">{summary.absences} absences</div>
-                            </div>
-                        )
-                    })}
-                </div>
-            </CardContent>
-          </Card>
+        <div className="text-center text-sm text-gray-600">
+          <p>
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/request-access"
+              className="font-medium text-primary hover:text-primary/80"
+            >
+              Request access
+            </Link>
+          </p>
         </div>
       </div>
-    </AppShell>
-  );
-}
-
-function ServiceCard({ service }: { service: Service }) {
-  const statusColors = {
-    active: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-    completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-  };
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">
-            {service.name ||
-                service.type.charAt(0).toUpperCase() + service.type.slice(1)}{' '}
-            Service
-            </CardTitle>
-            <Badge className={cn(
-                'capitalize',
-                statusColors[service.status as keyof typeof statusColors] || ''
-            )}>
-                {service.status}
-            </Badge>
-        </div>
-        <CardDescription>
-          {format(new Date(service.date), 'p')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex -space-x-2 overflow-hidden">
-          {students.slice(0, 5).map((student) => (
-            <Avatar key={student.matric_number} className="border-2 border-background">
-              <AvatarImage src={`https://placehold.co/40x40.png`} data-ai-hint="student portrait" />
-              <AvatarFallback>
-                {getInitials(student)}
-              </AvatarFallback>
-            </Avatar>
-          ))}
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">+1200 others attended</p>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

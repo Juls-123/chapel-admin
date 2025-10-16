@@ -9,7 +9,7 @@ const processSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
 
     const body = await request.json();
     const validation = processSchema.safeParse(body);

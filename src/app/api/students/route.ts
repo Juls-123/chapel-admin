@@ -39,7 +39,7 @@ const uploadMetadataSchema = z
 export async function GET(request: NextRequest) {
   try {
     // Auth: require any admin (admin or superadmin)
-    await requireAdmin(request);
+    await requireAdmin();
 
     // Parse query and delegate to service layer
     const { page, limit, search, matric, level, status, department } =
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Auth: superadmin required for mutations
-    const { admin } = await requireAdmin(request, { role: "superadmin" });
+    const { admin } = await requireAdmin({ role: "superadmin" });
 
     // Parse and validate request body
     const body = await request.json();

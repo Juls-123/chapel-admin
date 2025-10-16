@@ -22,7 +22,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin(request, { role: "superadmin" });
+    await requireAdmin({ role: "superadmin" });
 
     const body = await request.json();
 
@@ -113,7 +113,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin(request, { role: "superadmin" });
+    await requireAdmin({ role: "superadmin" });
 
     // Hard delete the override reason
     const { data: deletedReason, error: deleteError } = await supabaseAdmin

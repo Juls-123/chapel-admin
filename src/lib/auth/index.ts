@@ -3,6 +3,7 @@
 
 import { supabase } from './supabase';
 import { devAutoLogin } from './dev-auth';
+import { createClient } from '@/utils/supabase/client';
 
 // User type definition
 export interface User {
@@ -107,6 +108,7 @@ export async function getClearance(): Promise<ClearanceResponse> {
  * Sign out current user
  */
 export async function signOut(): Promise<void> {
+  const supabase=createClient()
   try {
     const { error } = await supabase.auth.signOut();
     if (error) {

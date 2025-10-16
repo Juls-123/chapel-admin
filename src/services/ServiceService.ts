@@ -14,10 +14,11 @@ export interface ServiceItem {
   type: ServiceType;
   date: string; // ISO datetime
   status: ServiceStatus;
-  levels: { id: string; code: string; name: string }[]; // e.g., ["100L", "200L"]
+  levels: { id: string; code: string; name: string | null }[]; // e.g., ["100L", "200L"]
   name?: string;
   created_by?: string;
   created_by_name?: string;
+  gender_constraint?: 'male' | 'female' | 'both';
 }
 
 export interface CreateServiceInput {
@@ -176,7 +177,7 @@ export class ServiceService {
           // Fallback to just the date
           dateString = row.service_date;
         } else {
-          console.log("Valid date constructed:", dateString);
+          
         }
       }
 
@@ -339,7 +340,7 @@ export class ServiceService {
       });
     }
 
-    let levelsOut: { id: string; code: string; name: string }[] = [];
+    let levelsOut: { id: string; code: string; name: string | null}[] = [];
     if (Array.isArray((updates as any).levels)) {
       const levelCodes = (updates as any).levels as string[];
       const patch: any = {
@@ -454,94 +455,5 @@ export class ServiceService {
       levels: levelsOut,
       name: updated.name || undefined,
     };
-  }
-
-  async getAttendanceByService(serviceId: string): Promise<{
-    service_id: string;
-    total_students: number;
-    total_present: number;
-    total_absent: number;
-    total_exempted: number;
-  }> {
-    const present = await this.supabase
-      .from("attendance")
-      .select("*", { count: "exact", head: true })
-      .eq("service_id", serviceId)
-      .eq("status", "present");
-
-    const absent = await this.supabase
-      .from("attendance")
-      .select("*", { count: "exact", head: true })
-      .eq("service_id", serviceId)
-      .eq("status", "absent");
-
-    const exempted = await this.supabase
-      .from("attendance")
-      .select("*", { count: "exact", head: true })
-      .eq("service_id", serviceId)
-      .eq("status", "exempted");
-
-    const total_present = present.count || 0;
-    const total_absent = absent.count || 0;
-    const total_exempted = exempted.count || 0;
-
-    return {
-      service_id: serviceId,
-      total_students: total_present + total_absent + total_exempted,
-      total_present,
-      total_absent,
-      total_exempted,
-    };
-  }
-
-  async exportAttendance(
-    serviceId: string,
-    format: "csv" | "excel" = "csv"
-  ): Promise<{ filename: string; mime: string; content: string }> {
-    const { data, error } = await this.supabase
-      .from("attendance")
-      .select(
-        "status, scanned_at, students(matric_number, first_name, last_name, email)"
-      )
-      .eq("service_id", serviceId);
-
-    if (error) {
-      throw Object.assign(new Error("Failed to fetch attendance data"), {
-        status: 500,
-        code: "ATTENDANCE_EXPORT_FETCH_FAILED",
-        details: error.message,
-      });
-    }
-
-    const rows = (data || []).map((r: any) => ({
-      matric_number: r.students?.matric_number,
-      student_name: `${r.students?.first_name || ""} ${
-        r.students?.last_name || ""
-      }`.trim(),
-      email: r.students?.email,
-      status: r.status,
-      scanned_at: r.scanned_at,
-    }));
-
-    const headers = [
-      "matric_number",
-      "student_name",
-      "email",
-      "status",
-      "scanned_at",
-    ];
-    const csv = [
-      headers.join(","),
-      ...rows.map((row) =>
-        headers.map((h) => JSON.stringify((row as any)[h] ?? "")).join(",")
-      ),
-    ].join("\n");
-
-    const filename = `service_${serviceId}_attendance.${
-      format === "excel" ? "csv" : "csv"
-    }`; // fallback csv
-    const mime = "text/csv";
-
-    return { filename, mime, content: csv };
   }
 }

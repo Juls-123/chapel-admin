@@ -42,7 +42,7 @@ export async function GET(
 ) {
   try {
     // Authenticate user
-    await requireAdmin(request);
+    await requireAdmin();
 
     const resolvedParams = await params;
     const serviceId = resolvedParams.id;

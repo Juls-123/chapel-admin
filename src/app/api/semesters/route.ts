@@ -23,7 +23,7 @@ const createSemesterSchema = z
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdmin();
 
     // Fetch semesters ordered by start_date desc (most recent first)
     const { data, error } = await supabaseAdmin
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin(request, { role: "superadmin" });
+    await requireAdmin({ role: "superadmin" });
 
     // Parse and validate request body
     const body = await request.json();

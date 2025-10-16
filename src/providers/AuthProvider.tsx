@@ -1,94 +1,64 @@
-// Auth provider with real Supabase Auth and development auto-login
-// Automatically signs in during development for seamless experience
-
 "use client";
 
-import React, { ReactNode, useEffect, useState } from "react";
+import { useEffect } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { getCurrentUser, signOut } from "@/lib/auth";
-import { supabase } from "@/lib/auth/supabase";
-import { devAutoLogin } from "@/lib/auth/dev-auth";
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const { setUser } = useGlobalContext();
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { setUser, clearUser, setLoading } = useGlobalContext();
 
   useEffect(() => {
-    let mounted = true;
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
+    // Get initial session
     const initializeAuth = async () => {
       try {
-        // Get initial session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
 
-        if (session?.user) {
-          // User already authenticated
-          const user = await getCurrentUser();
-          if (mounted) {
-            setUser(user);
-          }
-        } else if (process.env.NODE_ENV === "development") {
-          // Auto-login in development
-          console.log("🔧 Development mode: attempting auto-login...");
-          const loginResult = await devAutoLogin("admin");
-          if (loginResult?.user && mounted) {
-            const user = await getCurrentUser();
-            setUser(user);
-          }
+        if (error) {
+          console.error("Session error:", error);
+          clearUser();
+        } else if (data.session) {
+          setUser({
+            id: data.session.user.id,
+            email: data.session.user.email ?? "",
+            name: data.session.user.user_metadata?.name,
+          });
+        } else {
+          clearUser();
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        if (mounted) {
-          setUser(null);
-        }
+        clearUser();
+      } finally {
+        setLoading(false);
       }
     };
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
-      console.log("🔄 Auth state changed:", event);
-
-      if (session?.user) {
-        const user = await getCurrentUser();
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-
-      if (event === "TOKEN_REFRESHED") {
-        console.log("🔄 JWT token auto-refreshed");
-      }
-    });
 
     initializeAuth();
 
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email ?? "",
+          name: session.user.user_metadata?.name,
+        });
+      } else {
+        clearUser();
+      }
+    });
+
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
-  }, [setUser]);
+  }, [setUser, clearUser, setLoading]);
 
   return <>{children}</>;
-}
-
-// HOC wrapper for convenience
-export function withAuthProvider<P extends object>(
-  Component: React.ComponentType<P>
-) {
-  return function WrappedComponent(props: P) {
-    return (
-      <AuthProvider>
-        <Component {...props} />
-      </AuthProvider>
-    );
-  };
 }

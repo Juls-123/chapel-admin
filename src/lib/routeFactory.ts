@@ -73,8 +73,8 @@ export function createRoute<T = any>(
     
     try {
       // Initialize Supabase client
-      const cookieStore = cookies();
-      const supabase = createClient(cookieStore);
+      
+      const supabase = await createClient();
 
       // Handle authentication (stubbed for Phase 2)
       const authContext = await getAuthContext(supabase, options, request);
