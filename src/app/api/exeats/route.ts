@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { supabase } from '@/lib/auth/supabase';
+import { requireAdmin } from '@/lib/api/auth';
+import { createClient } from '@supabase/supabase-js';
 
 // Validation schema for creating exeats (based on actual DB schema)
 const exeatSchema = z.object({
@@ -28,34 +29,7 @@ const exeatQuerySchema = z.object({
 
 // Helper function to get authenticated admin from request
 async function getAdminFromRequest(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return { error: 'Unauthorized', status: 401 };
-    }
-
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return { error: 'Invalid token', status: 401 };
-    }
-
-    // Get admin record with role information
-    const { data: admin, error: adminError } = await supabase
-      .from('admins')
-      .select('id, role, first_name, last_name, email')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (adminError || !admin) {
-      return { error: 'Admin access required', status: 403 };
-    }
-
-    return { admin };
-  } catch (error) {
-    return { error: 'Authentication failed', status: 500 };
-  }
+  return requireAdmin();
 }
 
 // Helper function to log admin actions
@@ -67,6 +41,7 @@ async function logAdminAction(
   objectLabel: string | null = null,
   details: Record<string, any> = {}
 ) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   try {
     const { error } = await supabase
       .from('admin_actions')
@@ -91,10 +66,8 @@ async function logAdminAction(
 export async function GET(request: NextRequest) {
   try {
     // Authenticate admin
-    const authResult = await getAdminFromRequest(request);
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
+    const { admin } = await requireAdmin();
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
     // Parse and validate query parameters
     const { searchParams } = new URL(request.url);
@@ -265,11 +238,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Authenticate admin
-    const authResult = await getAdminFromRequest(request);
-    if ('error' in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-    const { admin } = authResult;
+    const { admin } = await requireAdmin();
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
     // Parse and validate request body
     const body = await request.json();
