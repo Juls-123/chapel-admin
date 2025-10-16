@@ -122,22 +122,39 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Get authentication headers for API requests
+ * Get authentication headers for API requests with automatic session refresh
  */
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    // First try to get the current session
+    const { data: { session }, error } = await supabase.auth.getSession();
     
-    if (!session?.access_token) {
-      return {};
+    if (error || !session?.access_token) {
+      // If no session, try to refresh it
+      const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !newSession?.access_token) {
+        console.warn('No valid session found');
+        return {};
+      }
+      
+      // Use the refreshed session
+      const user = await getCurrentUser();
+      return {
+        'Authorization': `Bearer ${newSession.access_token}`,
+        'X-User-ID': user?.id || '',
+        'X-User-Role': user?.role || 'none',
+        'X-Requested-With': 'XMLHttpRequest'  // Helps identify API requests
+      };
     }
     
+    // Use the existing session
     const user = await getCurrentUser();
-    
     return {
       'Authorization': `Bearer ${session.access_token}`,
       'X-User-ID': user?.id || '',
-      'X-User-Role': user?.role || 'none'
+      'X-User-Role': user?.role || 'none',
+      'X-Requested-With': 'XMLHttpRequest'  // Helps identify API requests
     };
   } catch (error) {
     console.error('Error getting auth headers:', error);
