@@ -27,40 +27,7 @@ const updateServiceSchema = z.object({
     .optional(),
 });
 
-// Helper function to get authenticated admin from request
-async function getAdminFromRequest(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return { error: "Unauthorized", status: 401 };
-    }
-
-    const token = authHeader.split(" ")[1];
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return { error: "Invalid token", status: 401 };
-    }
-
-    // Get admin record with role information
-    const { data: admin, error: adminError } = await supabaseAdmin
-      .from("admins")
-      .select("id, role, first_name, last_name, email")
-      .eq("auth_user_id", user.id)
-      .single();
-
-    if (adminError || !admin) {
-      return { error: "Admin access required", status: 403 };
-    }
-
-    return { admin };
-  } catch (error) {
-    return { error: "Authentication failed", status: 500 };
-  }
-}
+// Authentication is now handled by requireAdmin()
 
 // Helper function to log admin actions
 async function logAdminAction(
@@ -92,14 +59,7 @@ export async function GET(
 ) {
   try {
     // Authenticate admin
-    const authResult = await getAdminFromRequest(request);
-    if ("error" in authResult) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status }
-      );
-    }
-
+    const { admin } = await requireAdmin();
     const resolvedParams = await params;
     const serviceId = resolvedParams.id;
 
@@ -251,16 +211,7 @@ export async function DELETE(
 ) {
   try {
     // Authenticate admin
-    const authResult = await getAdminFromRequest(request);
-    if ("error" in authResult) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status }
-      );
-    }
-
-    const { admin } = authResult;
-
+    const { admin } = await requireAdmin();
     const resolvedParams = await params;
     const serviceId = resolvedParams.id;
 
