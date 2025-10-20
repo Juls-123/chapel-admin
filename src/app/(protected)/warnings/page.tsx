@@ -2,437 +2,732 @@
 
 import { useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
+  Calendar,
   FileText,
+  CalendarRange,
+  MoreHorizontal,
+  ArrowLeft,
   Send,
-  FileDown,
-  RefreshCw,
-  Plus,
+  Download,
+  Check,
+  Sparkles,
 } from "lucide-react";
-import { format, startOfWeek, endOfWeek, add } from "date-fns";
-
-import { AppShell } from "@/components/AppShell";
-import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { WarningLettersTable } from "./data-table";
-import { LoadingSpinner } from "@/components/ui-states/LoadingSpinner";
-import type { WarningLetterSummary, WarningStatus } from "@/lib/types";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+import { AppShell } from "@/components/AppShell";
 
-// Local type for UI state that extends the base WarningLetterSummary
-interface WarningLetterUI extends Omit<WarningLetterSummary, 'status'> {
-  status: WarningStatus | 'none';
-  // Add any additional UI-specific properties here
-  last_absence_date?: string; // Optional since it's UI-only
+// Types
+type Mode = "single" | "batch" | "weekly";
+
+type ModeContext = {
+  mode: Mode;
+  selection: {
+    date?: string;
+    dates?: string[];
+    serviceId?: string;
+    serviceIds?: string[];
+  };
+};
+
+type ActivityReport = {
+  serviceId: string;
+  serviceName: string;
+  date: string;
+  warningsSent: number;
+  warningsPending: number;
+  status: "pending" | "complete" | "in-progress";
+};
+
+type WarningLetterSummary = {
+  matric_number: string;
+  student_name: string;
+  miss_count: number;
+  status: "none" | "pending" | "sent";
+};
+
+// Mock data
+const mockServices = [
+  { id: "CS101", name: "Computer Science 101" },
+  { id: "CS201", name: "Data Structures" },
+  { id: "MTH101", name: "Calculus I" },
+  { id: "PHY101", name: "Physics I" },
+];
+
+const mockActivityReports: ActivityReport[] = [
+  {
+    serviceId: "CS101",
+    serviceName: "Computer Science 101",
+    date: "2025-10-15",
+    warningsSent: 5,
+    warningsPending: 2,
+    status: "complete",
+  },
+  {
+    serviceId: "CS201",
+    serviceName: "Data Structures",
+    date: "2025-10-14",
+    warningsSent: 3,
+    warningsPending: 1,
+    status: "in-progress",
+  },
+];
+
+const mockWarningLetters: WarningLetterSummary[] = [
+  {
+    matric_number: "2020/001",
+    student_name: "John Doe",
+    miss_count: 3,
+    status: "pending",
+  },
+  {
+    matric_number: "2020/002",
+    student_name: "Jane Smith",
+    miss_count: 4,
+    status: "pending",
+  },
+  {
+    matric_number: "2020/003",
+    student_name: "Bob Johnson",
+    miss_count: 5,
+    status: "sent",
+  },
+];
+
+// Mode Selection Cards Component
+function ModeSelectionCards({
+  onModeSelect,
+}: {
+  onModeSelect: (mode: Mode) => void;
+}) {
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      <Card
+        className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
+        onClick={() => onModeSelect("single")}
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <Calendar className="h-8 w-8 text-primary" />
+            <Badge variant="outline">Quick</Badge>
+          </div>
+          <CardTitle className="text-xl">Single Mode</CardTitle>
+          <CardDescription>
+            Generate warning letters for a specific service on a specific date
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full">Start Single Mode</Button>
+        </CardContent>
+      </Card>
+
+      <Card
+        className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
+        onClick={() => onModeSelect("batch")}
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <FileText className="h-8 w-8 text-primary" />
+            <Badge variant="outline">Flexible</Badge>
+          </div>
+          <CardTitle className="text-xl">Batch Mode</CardTitle>
+          <CardDescription>
+            Select multiple services and dates for bulk processing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full">Start Batch Mode</Button>
+        </CardContent>
+      </Card>
+
+      <Card
+        className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
+        onClick={() => onModeSelect("weekly")}
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CalendarRange className="h-8 w-8 text-primary" />
+            <Badge variant="outline">Automated</Badge>
+          </div>
+          <CardTitle className="text-xl">Weekly Mode</CardTitle>
+          <CardDescription>
+            Process all services for the current week automatically
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full">Start Weekly Mode</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
-export default function WarningLettersPage() {
-  // Mock data
-  const warnings: WarningLetterUI[] = [
-    {
-      matric_number: "MTU/2021/001",
-      student_name: "Adaora Okafor",
-      week_start: new Date("2025-09-22"),
-      miss_count: 4,
-      status: "pending",
-      last_absence_date: "2025-09-25",
-      first_created_at: "2025-09-26T09:15:00Z",
-      last_updated_at: "2025-09-27T10:45:00Z",
-      sent_at: undefined,
-      sent_by: undefined,
-      student_details: {
-        id: "student-001",
-        email: "adaora.okafor@mtu.edu.ng",
-        parent_email: "parents.okafor@example.com",
-        parent_phone: "+2348012345678",
-        gender: "female",
-        department: "Computer Science",
-        level: 300,
-        level_name: "300 Level",
-      },
+// Activity Report Table Component
+function ActivityReportTable({ reports }: { reports: ActivityReport[] }) {
+  const statusConfig = {
+    pending: {
+      label: "Pending",
+      color:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
     },
-    {
-      matric_number: "MTU/2020/145",
-      student_name: "Samuel Adeyemi",
-      week_start: new Date("2025-09-22"),
-      miss_count: 3,
-      status: "pending",
-      last_absence_date: "2025-09-24",
-      first_created_at: "2025-09-26T08:30:00Z",
-      last_updated_at: "2025-09-27T11:20:00Z",
-      sent_at: undefined,
-      sent_by: undefined,
-      student_details: {
-        id: "student-002",
-        email: "samuel.adeyemi@mtu.edu.ng",
-        parent_email: "parents.adeyemi@example.com",
-        parent_phone: "+2348011122233",
-        gender: "male",
-        department: "Mechanical Engineering",
-        level: 400,
-        level_name: "400 Level",
-      },
+    complete: {
+      label: "Complete",
+      color:
+        "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
     },
-    {
-      matric_number: "MTU/2022/073",
-      student_name: "Grace Bamidele",
-      week_start: new Date("2025-09-22"),
-      miss_count: 2,
-      status: "sent",
-      last_absence_date: "2025-09-23",
-      first_created_at: "2025-09-24T07:00:00Z",
-      last_updated_at: "2025-09-26T13:10:00Z",
-      sent_at: "2025-09-26T13:05:00Z",
-      sent_by: "chaplain@mtu.chapel",
-      student_details: {
-        id: "student-003",
-        email: "grace.bamidele@mtu.edu.ng",
-        parent_email: "parents.bamidele@example.com",
-        parent_phone: "+2348076543210",
-        gender: "female",
-        department: "Accounting",
-        level: 200,
-        level_name: "200 Level",
-      },
+    "in-progress": {
+      label: "In Progress",
+      color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
     },
-    {
-      matric_number: "MTU/2023/210",
-      student_name: "Chinedu Nwosu",
-      week_start: new Date("2025-09-22"),
-      miss_count: 3,
-      status: "sent",
-      last_absence_date: "2025-09-25",
-      first_created_at: "2025-09-25T12:45:00Z",
-      last_updated_at: "2025-09-26T09:40:00Z",
-      sent_at: "2025-09-26T09:35:00Z",
-      sent_by: "chaplain@mtu.chapel",
-      student_details: {
-        id: "student-004",
-        email: "chinedu.nwosu@mtu.edu.ng",
-        parent_email: "parents.nwosu@example.com",
-        parent_phone: "+2348024689135",
-        gender: "male",
-        department: "Architecture",
-        level: 100,
-        level_name: "100 Level",
-      },
-    },
-    {
-      matric_number: "MTU/2021/315",
-      student_name: "Ifeoluwa Salami",
-      week_start: new Date("2025-09-22"),
-      miss_count: 5,
-      status: "pending",
-      last_absence_date: "2025-09-26",
-      first_created_at: "2025-09-26T14:00:00Z",
-      last_updated_at: "2025-09-27T08:05:00Z",
-      sent_at: undefined,
-      sent_by: undefined,
-      student_details: {
-        id: "student-005",
-        email: "ifeoluwa.salami@mtu.edu.ng",
-        parent_email: "parents.salami@example.com",
-        parent_phone: "+2348098765432",
-        gender: "female",
-        department: "Business Administration",
-        level: 300,
-        level_name: "300 Level",
-      },
-    },
-    {
-      matric_number: "MTU/2020/512",
-      student_name: "Emeka Johnson",
-      week_start: new Date("2025-09-22"),
-      miss_count: 1,
-      status: "none",
-      last_absence_date: undefined,
-      first_created_at: "2025-09-23T09:00:00Z",
-      last_updated_at: "2025-09-24T09:00:00Z",
-      sent_at: undefined,
-      sent_by: undefined,
-      student_details: {
-        id: "student-006",
-        email: "emeka.johnson@mtu.edu.ng",
-        parent_email: "parents.johnson@example.com",
-        parent_phone: "+2348081234567",
-        gender: "male",
-        department: "Economics",
-        level: 400,
-        level_name: "400 Level",
-      },
-    },
-  ];
-
-  const stats = {
-    total: warnings.length,
-    pending: warnings.filter((w) => w.status === "pending").length,
-    sent: warnings.filter((w) => w.status === "sent").length,
-    delivered: 3,
-    failed: 1,
   };
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedStudent, setSelectedStudent] = useState<WarningLetterUI | null>(
-    warnings[0] ?? null
+  return (
+    <Card className="shadow-sm">
+      <CardHeader>
+        <CardTitle>Activity Report</CardTitle>
+        <CardDescription>
+          Recent warning letter actions across all services
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Service</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Warnings Sent</TableHead>
+                <TableHead>Pending</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.length ? (
+                reports.map((report) => (
+                  <TableRow key={`${report.serviceId}-${report.date}`}>
+                    <TableCell className="font-medium">
+                      <div>
+                        <div>{report.serviceName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {report.serviceId}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{report.date}</TableCell>
+                    <TableCell>{report.warningsSent}</TableCell>
+                    <TableCell>{report.warningsPending}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "border-0",
+                          statusConfig[report.status].color
+                        )}
+                      >
+                        {statusConfig[report.status].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No activity reports yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
-  
-  const isLoading = false;
-  const error: Error | null = null;
-  
-  // Calculate current week start date
-  const currentWeekStart = startOfWeek(add(new Date(), { weeks: weekOffset }), {
-    weekStartsOn: 1,
-  });
-  
-  const handleUpdateStatus = (matricNumber: string, status: WarningLetterSummary['status']) => {
-    // Implementation will be added by the parent component
-    console.log(`Update status for ${matricNumber} to ${status}`);
+}
+
+// Single Mode Modal
+function SingleModeModal({
+  open,
+  onOpenChange,
+  onLockIn,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onLockIn: (context: ModeContext) => void;
+}) {
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedService, setSelectedService] = useState("");
+
+  const handleLockIn = () => {
+    if (selectedDate && selectedService) {
+      onLockIn({
+        mode: "single",
+        selection: {
+          date: selectedDate,
+          serviceId: selectedService,
+        },
+      });
+      onOpenChange(false);
+    }
   };
 
-  const handleGenerateWarnings = () => {
-    // Implementation will be added by the parent component
-  };
-
-  const handleSendAll = () => {
-    // Implementation will be added by the parent component
-  };
-
-  const getWeekDisplay = (offset: number) => {
-    const start = startOfWeek(add(new Date(), { weeks: offset }), {
-      weekStartsOn: 1,
-    });
-    const end = endOfWeek(add(new Date(), { weeks: offset }), {
-      weekStartsOn: 1,
-    });
-    return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
-  };
-
-  const getFirstName = (fullName: string) => {
-    return fullName.split(" ")[0];
-  };
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <AppShell>
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Single Mode Setup</DialogTitle>
+          <DialogDescription>
+            Select a date and service to generate warning letters
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Date</label>
+            <input
+              type="date"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
           </div>
-          <Skeleton className="h-96" />
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Service</label>
+            <Select value={selectedService} onValueChange={setSelectedService}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a service" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockServices.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </AppShell>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-          <Alert>
-            <AlertDescription>
-              Error loading warning letters. Please try again later.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
-        </div>
-      </AppShell>
-    );
-  }
-
-  // Empty state
-  if (warnings.length === 0) {
-    return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-          <FileText className="h-12 w-12 text-muted-foreground" />
-          <h3 className="text-lg font-medium">No warning letters</h3>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
-            No warning letters have been generated for this week.
-          </p>
-          <Button onClick={handleGenerateWarnings} className="mt-4">
-            <FileText className="mr-2 h-4 w-4" />
-            Generate Warnings
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
+          <Button
+            onClick={handleLockIn}
+            disabled={!selectedDate || !selectedService}
+          >
+            Lock In & Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Batch Mode Modal
+function BatchModeModal({
+  open,
+  onOpenChange,
+  onLockIn,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onLockIn: (context: ModeContext) => void;
+}) {
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [currentDate, setCurrentDate] = useState("");
+
+  const addDate = () => {
+    if (currentDate && !selectedDates.includes(currentDate)) {
+      setSelectedDates([...selectedDates, currentDate]);
+      setCurrentDate("");
+    }
+  };
+
+  const removeDate = (date: string) => {
+    setSelectedDates(selectedDates.filter((d) => d !== date));
+  };
+
+  const toggleService = (serviceId: string) => {
+    if (selectedServices.includes(serviceId)) {
+      setSelectedServices(selectedServices.filter((id) => id !== serviceId));
+    } else {
+      setSelectedServices([...selectedServices, serviceId]);
+    }
+  };
+
+  const handleLockIn = () => {
+    if (selectedDates.length && selectedServices.length) {
+      onLockIn({
+        mode: "batch",
+        selection: {
+          dates: selectedDates,
+          serviceIds: selectedServices,
+        },
+      });
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Batch Mode Setup</DialogTitle>
+          <DialogDescription>
+            Select multiple dates and services for bulk processing
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Add Dates</label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={currentDate}
+                onChange={(e) => setCurrentDate(e.target.value)}
+              />
+              <Button onClick={addDate}>Add</Button>
+            </div>
+            {selectedDates.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedDates.map((date) => (
+                  <Badge
+                    key={date}
+                    variant="secondary"
+                    className="cursor-pointer"
+                    onClick={() => removeDate(date)}
+                  >
+                    {date} ×
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Services</label>
+            <div className="space-y-2">
+              {mockServices.map((service) => (
+                <div key={service.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={service.id}
+                    checked={selectedServices.includes(service.id)}
+                    onCheckedChange={() => toggleService(service.id)}
+                  />
+                  <label
+                    htmlFor={service.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {service.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selectedDates.length > 0 && selectedServices.length > 0 && (
+            <div className="rounded-lg bg-muted p-3">
+              <p className="text-sm text-muted-foreground">
+                Will process <strong>{selectedServices.length}</strong> services
+                across <strong>{selectedDates.length}</strong> dates
+              </p>
+            </div>
+          )}
         </div>
-      </AppShell>
-    );
-  }
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleLockIn}
+            disabled={!selectedDates.length || !selectedServices.length}
+          >
+            Lock In & Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Business View Component
+function BusinessView({
+  context,
+  onBack,
+}: {
+  context: ModeContext;
+  onBack: () => void;
+}) {
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(
+    mockWarningLetters[0]?.matric_number || null
+  );
+
+  const toggleRowSelection = (matricNumber: string) => {
+    if (selectedRows.includes(matricNumber)) {
+      setSelectedRows(selectedRows.filter((id) => id !== matricNumber));
+    } else {
+      setSelectedRows([...selectedRows, matricNumber]);
+    }
+  };
+
+  const getContextDisplay = () => {
+    if (context.mode === "single") {
+      const service = mockServices.find(
+        (s) => s.id === context.selection.serviceId
+      );
+      return `${service?.name} | ${context.selection.date}`;
+    } else if (context.mode === "batch") {
+      return `${context.selection.serviceIds?.length} services | ${context.selection.dates?.length} dates`;
+    } else {
+      return "Current Week";
+    }
+  };
+
+  const selectedStudentData = mockWarningLetters.find(
+    (s) => s.matric_number === selectedStudent
+  );
 
   return (
     <AppShell>
       <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Warning Letters</h1>
-          <p className="text-muted-foreground">
-            Manage warning letters for {getWeekDisplay(weekOffset)}
-          </p>
-          <div className="flex items-center space-x-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => setWeekOffset(weekOffset - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-              <span className="ml-1">Previous</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setWeekOffset(weekOffset + 1)}>
-              <span className="mr-1">Next</span>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>
-              This Week
-            </Button>
-            <Button onClick={handleGenerateWarnings}>
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Warnings
-            </Button>
-            <Button onClick={handleSendAll}>
-              <Send className="mr-2 h-4 w-4" />
-              Send All
-            </Button>
-            <Button variant="outline" size="sm">
-              <FileDown className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-          </div>
-        </div>
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="sm" onClick={onBack}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {context.mode.charAt(0).toUpperCase() +
+                      context.mode.slice(1)}{" "}
+                    Mode
+                  </p>
+                  <p className="font-medium">{getContextDisplay()}</p>
+                </div>
+              </div>
+              <Badge variant="outline">
+                {mockWarningLetters.length} students
+              </Badge>
+            </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Letters</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">This week</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <RefreshCw className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">Awaiting action</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sent</CardTitle>
-              <Send className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.sent}</div>
-              <p className="text-xs text-muted-foreground">Successfully sent</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Failed</CardTitle>
-              <Alert className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.failed}</div>
-              <p className="text-xs text-muted-foreground">Requires attention</p>
-            </CardContent>
-          </Card>
-        </div>
+            <Separator className="my-4" />
 
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate All
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={selectedRows.length === 0}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send Selected ({selectedRows.length})
+              </Button>
+              <Button size="sm" variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={selectedRows.length === 0}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Mark as Sent
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <Card className="shadow-sm">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Warning Letters</CardTitle>
-                  <CardDescription>
-                    Review and manage warning letters for students with excessive absences
-                  </CardDescription>
-                </div>
-              </div>
+              <CardTitle className="text-lg">Warning Letters</CardTitle>
             </CardHeader>
             <CardContent>
-              <WarningLettersTable
-                data={warnings}
-                onRowSelect={setSelectedStudent}
-                onUpdateStatus={handleUpdateStatus}
-                selectedRowId={selectedStudent?.matric_number}
-              />
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox />
+                      </TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Miss Count</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockWarningLetters.map((letter) => (
+                      <TableRow
+                        key={letter.matric_number}
+                        className={cn(
+                          "cursor-pointer",
+                          selectedStudent === letter.matric_number &&
+                            "bg-muted/50"
+                        )}
+                        onClick={() => setSelectedStudent(letter.matric_number)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedRows.includes(
+                              letter.matric_number
+                            )}
+                            onCheckedChange={() =>
+                              toggleRowSelection(letter.matric_number)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">
+                              {letter.student_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {letter.matric_number}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{letter.miss_count}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "border-0 capitalize",
+                              letter.status === "sent" &&
+                                "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+                              letter.status === "pending" &&
+                                "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300"
+                            )}
+                          >
+                            {letter.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm lg:sticky lg:top-24">
+          <Card className="shadow-sm">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {selectedStudent
-                      ? `${getFirstName(selectedStudent.student_name)}'s Warning Letter`
-                      : "Letter Preview"}
-                  </CardTitle>
-                  <CardDescription>
-                    {selectedStudent
-                      ? "Review and manage this student's warning letter"
-                      : "Select a student to preview their warning letter."}
-                  </CardDescription>
-                </div>
-                {selectedStudent && (
-                  <Badge
-                    variant={selectedStudent.status === 'pending' ? 'outline' : 'default'}
-                  >
-                    {selectedStudent.status.toUpperCase()}
-                  </Badge>
-                )}
-              </div>
+              <CardTitle className="text-lg">Warning Letter Preview</CardTitle>
             </CardHeader>
             <CardContent>
-              {selectedStudent ? (
-                <>
-                  <div className="prose max-w-none">
-                    <p className="font-semibold">Subject: Formal Warning Regarding Chapel Attendance</p>
-                    <p>Dear {getFirstName(selectedStudent.student_name)},</p>
-                    <p>
-                      This correspondence serves as an official notice concerning your attendance record for chapel services.
-                      According to our records, you have accrued a total of {selectedStudent.miss_count} absences, thereby exceeding the permissible limit as stipulated in the student handbook.
-                    </p>
-                    {selectedStudent.last_absence_date && (
-                      <p>
-                        Your most recent absence was recorded on{' '}
-                        {format(new Date(selectedStudent.last_absence_date), 'MMMM d, yyyy')}.
+              {selectedStudentData ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-4 bg-white dark:bg-gray-950 min-h-[400px]">
+                    <div className="text-center mb-6">
+                      <h3 className="font-bold text-lg">WARNING LETTER</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Chapel Attendance Violation Notice
                       </p>
-                    )}
-                    <p>
-                      Please be advised that any further absences may result in additional disciplinary measures, in accordance with institutional policies.
-                      We strongly encourage you to take immediate steps to rectify this matter and ensure consistent attendance moving forward.
-                    </p>
-                    <p className="mt-4">Sincerely,</p>
-                    <p>University Chaplaincy</p>
+                    </div>
+
+                    <div className="space-y-4 text-sm">
+                      <p>Date: {new Date().toLocaleDateString()}</p>
+                      <p>
+                        To: <strong>{selectedStudentData.student_name}</strong>
+                      </p>
+                      <p>Matric No: {selectedStudentData.matric_number}</p>
+
+                      <div className="my-4">
+                        <p className="font-semibold">
+                          Subject: Warning for Absence from Chapel Services
+                        </p>
+                      </div>
+
+                      <p>Dear {selectedStudentData.student_name},</p>
+
+                      <p>
+                        This letter serves as a formal warning from the
+                        Chaplaincy Unit of Mountain Top University regarding
+                        your chapel attendance record. Our records indicate that
+                        you have missed{" "}
+                        <strong>{selectedStudentData.miss_count}</strong> chapel
+                        service(s), which exceeds the permitted limit.
+                      </p>
+
+                      <p>
+                        Regular participation in chapel services is an essential
+                        part of spiritual growth and community life at Mountain
+                        Top University. Your continued absence is therefore a
+                        matter of concern.
+                      </p>
+
+                      <p>
+                        You are strongly advised to take immediate steps to
+                        improve your attendance. Further absences may lead to
+                        disciplinary action in line with the university’s chapel
+                        attendance regulations.
+                      </p>
+
+                      <p className="mt-4">Sincerely,</p>
+                      <p className="font-semibold">The Chaplaincy Unit</p>
+                      <p>Mountain Top University</p>
+                    </div>
                   </div>
-                  <div className="mt-6 flex items-center justify-end space-x-2">
-                    <Button variant="outline">Print</Button>
-                    <Button>Send to Student</Button>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" className="flex-1">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1">
+                      Print
+                    </Button>
                   </div>
-                </>
+                </div>
               ) : (
-                <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-muted bg-muted/60 text-center">
-                  <div className="rounded-full bg-background p-3">
-                    <FileText className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Choose a student from the table to view their warning letter preview.
-                  </p>
+                <div className="text-center text-muted-foreground py-12">
+                  Select a student to preview their warning letter
                 </div>
               )}
             </CardContent>
@@ -442,296 +737,67 @@ export default function WarningLettersPage() {
     </AppShell>
   );
 }
-//         </div>
-//       </AppShell>
-//     );
-//   }
 
-//   // Error state
-//   if (error) {
-//     return (
-//       <AppShell>
-//         <PageHeader
-//           title="Warning Letters"
-//           description="Generate, review, and send warning letters to students."
-//         />
-//         <ErrorState
-//           title="Failed to load warning letters"
-//           message={error.message}
-//           onRetry={() => refetch()}
-//         />
-//       </AppShell>
-//     );
-//   }
+// Main Component
+export default function WarningLettersManagement() {
+  const [activeMode, setActiveMode] = useState<Mode | null>(null);
+  const [modeContext, setModeContext] = useState<ModeContext | null>(null);
+  const [isBusinessViewOpen, setIsBusinessViewOpen] = useState(false);
 
-//   return (
-//     <AppShell>
-//       <PageHeader
-//         title="Warning Letters"
-//         description="Generate, review, and send warning letters to students."
-//       />
-//       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-//         <div className="flex items-center gap-2">
-//           <Button
-//             variant="outline"
-//             size="icon"
-//             onClick={() => setWeekOffset(weekOffset - 1)}
-//           >
-//             <ChevronLeft className="h-4 w-4" />
-//           </Button>
-//           <span className="text-lg font-medium text-center w-56">
-//             {getWeekDisplay(weekOffset)}
-//           </span>
-//           <Button
-//             variant="outline"
-//             size="icon"
-//             onClick={() => setWeekOffset(weekOffset + 1)}
-//             disabled={weekOffset >= 0}
-//           >
-//             <ChevronRight className="h-4 w-4" />
-//           </Button>
-//         </div>
-//         <div className="flex gap-2">
-//           <Button
-//             variant="outline"
-//             size="sm"
-//             onClick={handleGenerateWarnings}
-//             disabled={generateWarnings.isPending}
-//           >
-//             {generateWarnings.isPending ? (
-//               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-//             ) : (
-//               <Plus className="h-4 w-4 mr-2" />
-//             )}
-//             Generate
-//           </Button>
-//           <Button
-//             variant="default"
-//             size="sm"
-//             onClick={handleSendAll}
-//             disabled={
-//               warnings.filter((w: { status: string }) => w.status === "pending")
-//                 .length === 0 || bulkUpdateWarnings.isPending
-//             }
-//           >
-//             {bulkUpdateWarnings.isPending ? (
-//               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-//             ) : (
-//               <Send className="h-4 w-4 mr-2" />
-//             )}
-//             Send All
-//           </Button>
-//           <Button
-//             variant="ghost"
-//             size="sm"
-//             onClick={() => refetch()}
-//             disabled={isLoading}
-//           >
-//             <RefreshCw
-//               className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-//             />
-//           </Button>
-//         </div>
-//       </div>
+  const handleModeSelect = (mode: Mode) => {
+    setActiveMode(mode);
+    if (mode === "weekly") {
+      setModeContext({
+        mode: "weekly",
+        selection: {},
+      });
+      setIsBusinessViewOpen(true);
+    }
+  };
 
-//       {/* Statistics Cards */}
-//       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-//         <Card>
-//           <CardContent className="p-4">
-//             <div className="flex items-center justify-between">
-//               <div>
-//                 <p className="text-sm font-medium text-muted-foreground">
-//                   Total Warnings
-//                 </p>
-//                 <div className="text-2xl font-bold">
-//                   {statsLoading ? (
-//                     <Skeleton className="h-8 w-12" />
-//                   ) : (
-//                     stats.total
-//                   )}
-//                 </div>
-//               </div>
-//               <FileText className="h-8 w-8 text-muted-foreground" />
-//             </div>
-//           </CardContent>
-//         </Card>
+  const handleModalLockIn = (context: ModeContext) => {
+    setModeContext(context);
+    setIsBusinessViewOpen(true);
+  };
 
-//         <Card>
-//           <CardContent className="p-4">
-//             <div className="flex items-center justify-between">
-//               <div>
-//                 <p className="text-sm font-medium text-muted-foreground">
-//                   Pending
-//                 </p>
-//                 <div className="text-2xl font-bold text-orange-600">
-//                   {statsLoading ? (
-//                     <Skeleton className="h-8 w-12" />
-//                   ) : (
-//                     stats.pending
-//                   )}
-//                 </div>
-//               </div>
-//               <Badge
-//                 variant="secondary"
-//                 className="bg-orange-100 text-orange-800"
-//               >
-//                 {statsLoading ? "..." : stats.pending}
-//               </Badge>
-//             </div>
-//           </CardContent>
-//         </Card>
+  const handleBack = () => {
+    setIsBusinessViewOpen(false);
+    setActiveMode(null);
+    setModeContext(null);
+  };
 
-//         <Card>
-//           <CardContent className="p-4">
-//             <div className="flex items-center justify-between">
-//               <div>
-//                 <p className="text-sm font-medium text-muted-foreground">
-//                   Sent
-//                 </p>
-//                 <div className="text-2xl font-bold text-green-600">
-//                   {statsLoading ? (
-//                     <Skeleton className="h-8 w-12" />
-//                   ) : (
-//                     stats.sent
-//                   )}
-//                 </div>
-//               </div>
-//               <Badge
-//                 variant="secondary"
-//                 className="bg-green-100 text-green-800"
-//               >
-//                 {statsLoading ? "..." : stats.sent}
-//               </Badge>
-//             </div>
-//           </CardContent>
-//         </Card>
+  if (isBusinessViewOpen && modeContext) {
+    return <BusinessView context={modeContext} onBack={handleBack} />;
+  }
 
-//         <Card>
-//           <CardContent className="p-4">
-//             <div className="flex items-center justify-between">
-//               <div>
-//                 <p className="text-sm font-medium text-muted-foreground">
-//                   High Risk
-//                 </p>
-//                 <div className="text-2xl font-bold text-red-600">
-//                   {statsLoading ? (
-//                     <Skeleton className="h-8 w-12" />
-//                   ) : (
-//                     stats.highRisk
-//                   )}
-//                 </div>
-//               </div>
-//               <Badge variant="destructive">
-//                 {statsLoading ? "..." : `${stats.highRisk} (3+ absences)`}
-//               </Badge>
-//             </div>
-//           </CardContent>
-//         </Card>
-//       </div>
-//       {warnings.length === 0 ? (
-//         <EmptyState
-//           title="No warning letters found"
-//           message={`No warning letters found for the week of ${getWeekDisplay(
-//             weekOffset
-//           )}. Generate warnings to get started.`}
-//           actionLabel="Generate Warnings"
-//           onAction={handleGenerateWarnings}
-//         />
-//       ) : (
-//         <div className="grid gap-6 lg:grid-cols-5">
-//           <div className="lg:col-span-3">
-//             <WarningLettersTable
-//               data={warnings}
-//               onRowSelect={handleSelectStudent}
-//               onUpdateStatus={handleUpdateStatus}
-//             />
-//           </div>
-//           <div className="lg:col-span-2">
-//             <Card className="shadow-sm sticky top-20">
-//               <CardHeader>
-//                 <CardTitle>Letter Preview</CardTitle>
-//                 <CardDescription>
-//                   A preview of the warning letter for the selected student.
-//                 </CardDescription>
-//               </CardHeader>
-//               <CardContent>
-//                 {selectedStudent ? (
-//                   <div className="p-6 border rounded-lg bg-white dark:bg-background/50 min-h-[400px] text-sm text-gray-800 dark:text-gray-300 font-serif">
-//                     <h2 className="text-xl font-bold mb-4 text-center">
-//                       Chapel Attendance Warning
-//                     </h2>
-//                     <p className="mb-2">
-//                       <strong>Date:</strong> {format(new Date(), "PPP")}
-//                     </p>
-//                     <p className="mb-2">
-//                       <strong>To:</strong> {selectedStudent.student_name}
-//                     </p>
-//                     <p className="mb-4">
-//                       <strong>Matric Number:</strong>{" "}
-//                       {selectedStudent.matric_number}
-//                     </p>
+  return (
+    <AppShell>
+      <div className="space-y-6 p-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Warning Letters Management
+          </h1>
+          <p className="text-muted-foreground">
+            Generate and manage student warning letters across multiple modes
+          </p>
+        </div>
 
-//                     <p className="mb-4">
-//                       Dear {getFirstName(selectedStudent.student_name)},
-//                     </p>
+        <ModeSelectionCards onModeSelect={handleModeSelect} />
 
-//                     <p className="mb-4">
-//                       This letter serves as a formal warning regarding your
-//                       attendance at required chapel services. Our records
-//                       indicate that you have missed{" "}
-//                       <strong>{selectedStudent.miss_count}</strong> services for
-//                       the week of{" "}
-//                       <strong>
-//                         {format(new Date(selectedStudent.week_start), "PPP")}
-//                       </strong>{" "}
-//                       to{" "}
-//                       <strong>
-//                         {format(
-//                           endOfWeek(new Date(selectedStudent.week_start), {
-//                             weekStartsOn: 1,
-//                           }),
-//                           "PPP"
-//                         )}
-//                       </strong>
-//                       .
-//                     </p>
+        <ActivityReportTable reports={mockActivityReports} />
 
-//                     <p className="mb-4">
-//                       Chapel attendance is mandatory for all students as
-//                       outlined in the Student Handbook. Consistent attendance is
-//                       essential for your spiritual development and is a
-//                       requirement for your continued enrollment.
-//                     </p>
+        <SingleModeModal
+          open={activeMode === "single"}
+          onOpenChange={(open) => !open && setActiveMode(null)}
+          onLockIn={handleModalLockIn}
+        />
 
-//                     <p className="mb-4">
-//                       Consistent attendance is a vital part of our community
-//                       ethos. Please ensure you attend all future services. If
-//                       you believe this is an error, or if there are extenuating
-//                       circumstances, please contact the administrative office
-//                       immediately.
-//                     </p>
-
-//                     <p>Sincerely,</p>
-//                     <p className="mt-2 font-semibold">
-//                       The Chapel Administration
-//                     </p>
-//                   </div>
-//                 ) : (
-//                   <div className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-muted bg-muted/50 p-8 text-center min-h-[400px]">
-//                     <div className="rounded-full bg-background p-3">
-//                       <FileText className="size-8 text-muted-foreground" />
-//                     </div>
-//                     <p className="text-muted-foreground">
-//                       Select a student to preview their letter, or adjust the
-//                       week if none are shown.
-//                     </p>
-//                   </div>
-//                 )}
-//               </CardContent>
-//             </Card>
-//           </div>
-//         </div>
-//       )}
-//     </AppShell>
-//   );
-// }
+        <BatchModeModal
+          open={activeMode === "batch"}
+          onOpenChange={(open) => !open && setActiveMode(null)}
+          onLockIn={handleModalLockIn}
+        />
+      </div>
+    </AppShell>
+  );
+}
