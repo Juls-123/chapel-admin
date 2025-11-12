@@ -57,7 +57,7 @@ import {
 } from "@/hooks/useManualClearance";
 import { useOverrideReasons } from "@/hooks/useOverrideReasons";
 import { useLevels } from "@/hooks/useLevels";
-import { getCurrentUser, type User } from "@/lib/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const manualClearSchema = z.object({
   date: z.date({
@@ -79,6 +79,7 @@ const manualClearSchema = z.object({
 type ManualClearFormValues = z.infer<typeof manualClearSchema>;
 
 function ManualClearPageContent() {
+  const queryClient = useQueryClient();
   const { success: showSuccess, error: showError } = useToastExt();
   const { user: currentUser } = useGlobalContext();
   const [searchQuery, setSearchQuery] = useState("");
@@ -652,9 +653,17 @@ function ManualClearPageContent() {
                   variant="outline"
                   size="sm"
                   className="px-2"
-                  onClick={() => studentsQuery.refetch()}
+                  onClick={() => {
+                    // Reset the absent students query to initial state
+                    queryClient.resetQueries({
+                      queryKey: ["manual-clearance", "absentees"],
+                    });
+                    setSearchQuery("");
+                    setCurrentPage(1);
+                    setSelectedMatricNumbers([]);
+                  }}
                   disabled={studentsQuery.isLoading}
-                  title="Refresh list"
+                  title="Reset list"
                 >
                   <RefreshCw
                     className={cn(

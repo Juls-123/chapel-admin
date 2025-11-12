@@ -12,13 +12,16 @@ const supabaseAdmin = createClient<Database>(
 
 // Schema that matches what frontend sends
 const clearSchema = z.object({
-  studentIds: z.array(z.string()).min(1, "At least one student is required"), // These are matric numbers
+  studentIds: z.array(z.string().min(1, "Matric number cannot be empty")).min(1, "At least one student is required"),
   serviceId: z.string().uuid("Invalid service ID"),
-  level: z.string().uuid("Invalid level ID"), // This is a level UUID
+  level: z.string().uuid("Invalid level ID"),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Use YYYY-MM-DD"),
-  reasonId: z.string().uuid("Invalid reason ID"),
+  reasonId: z
+    .string()
+    .min(1, "A reason for clearance must be selected")
+    .uuid("Invalid reason ID"),
   clearedBy: z.string().uuid("Invalid admin ID"),
   comments: z.string().optional(),
 });

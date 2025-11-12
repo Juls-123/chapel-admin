@@ -160,6 +160,11 @@ async function fetchOverrideReasons(): Promise<OverrideReason[]> {
 async function clearStudents(
   clearanceData: ClearanceRequest
 ): Promise<ClearanceResult> {
+  // Validate reasonId before making the API call
+  if (!clearanceData.reasonId) {
+    throw new Error('Please select a clearance reason before proceeding');
+  }
+
   const headers = await getAuthHeaders();
   const response = await fetch("/api/manual-clearance/clear", {
     method: "POST",
@@ -171,8 +176,62 @@ async function clearStudents(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.details || error.error || "Failed to clear students");
+    // First, clone the response so we can read it multiple times
+    const responseClone = response.clone();
+    
+    try {
+      // Try to get the response text first
+      const responseText = await response.text();
+      console.log('Raw error response:', responseText);
+      
+      // Try to parse as JSON if it looks like JSON
+      try {
+        const errorData = JSON.parse(responseText);
+        console.log('Parsed error data:', errorData);
+        
+        // Handle different error response formats
+        let errorMessage = 'Failed to clear students';
+        
+        if (errorData && typeof errorData === 'object') {
+          // Handle Zod validation errors
+          if (errorData.details) {
+            if (typeof errorData.details === 'object') {
+              const zodErrors = Object.entries(errorData.details)
+                .map(([key, value]) => {
+                  if (Array.isArray(value)) {
+                    return value.join(', ');
+                  }
+                  return `${key}: ${value}`;
+                })
+                .join('; ');
+              errorMessage = `Validation error: ${zodErrors}`;
+            } else if (typeof errorData.details === 'string') {
+              errorMessage = errorData.details;
+            }
+          } 
+          // Handle our custom error format
+          else if (errorData.error || errorData.message) {
+            errorMessage = [
+              errorData.error,
+              errorData.message,
+              errorData.details
+            ].filter(Boolean).join(' - ');
+          }
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+        
+        throw new Error(errorMessage);
+      } catch (jsonError) {
+        // If JSON parsing fails, use the raw text
+        console.log('Failed to parse error as JSON, using raw text');
+        throw new Error(responseText || `Failed to clear students (${response.status}): ${response.statusText}`);
+      }
+    } catch (parseError) {
+      console.error('Error processing error response:', parseError);
+      // If all else fails, use the status text from the cloned response
+      throw new Error(`Failed to clear students (${response.status}): ${response.statusText || 'Unknown error'}`);
+    }
   }
 
   return response.json();
