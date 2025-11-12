@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { levels, students, admins, exeats, manualOverrides, services, adminActions, overrideReasonDefinitions, studentUploads, serviceLevels, attendanceUploads, attendanceBatches, studentUploadErrors, attendanceIssues } from "./schema";
+import { levels, students, admins, exeats, manualOverrides, services, adminActions, overrideReasonDefinitions, studentUploads, serviceLevels, attendanceUploads, attendanceBatches, studentUploadErrors, attendanceIssues, warningLetterWorkflows } from "./schema";
 
 export const studentsRelations = relations(students, ({one, many}) => ({
 	level: one(levels, {
@@ -38,6 +38,7 @@ export const adminsRelations = relations(admins, ({many}) => ({
 	studentUploads: many(studentUploads),
 	attendanceUploads: many(attendanceUploads),
 	attendanceIssues: many(attendanceIssues),
+	warningLetterWorkflows: many(warningLetterWorkflows),
 }));
 
 export const manualOverridesRelations = relations(manualOverrides, ({one}) => ({
@@ -147,3 +148,10 @@ export const attendanceIssuesRelations = relations(attendanceIssues, ({one}) => 
 		references: [students.id]
 	}),
 }));
+// Relations
+export const warningLetterWorkflowsRelations = relations(warningLetterWorkflows, ({one}) => ({
+	admin: one(admins, {
+	  fields: [warningLetterWorkflows.initiatedBy],
+	  references: [admins.id]
+	}),
+  }));

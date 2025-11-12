@@ -390,3 +390,58 @@ export const vwRecentAdminActions = pgView("vw_recent_admin_actions", {	id: uuid
 	objectLabel: text("object_label"),
 	adminName: text("admin_name"),
 }).as(sql`SELECT aa.id, aa.action, aa.created_at, aa.object_type, aa.object_label, concat(a.first_name, ' ', a.last_name) AS admin_name FROM admin_actions aa JOIN admins a ON aa.admin_id = a.id ORDER BY aa.created_at DESC LIMIT 50`);
+export const warningLetterWorkflows = pgTable("warning_letter_workflows", {
+	workflowId: uuid("workflow_id").defaultRandom().primaryKey().notNull(),
+	
+	// Workflow metadata
+	mode: text().notNull().$type<'single' | 'batch' | 'weekly'>(),
+	status: text().notNull().$type<'draft' | 'locked' | 'completed' | 'failed'>(),
+	
+	// Date range
+	startDate: date("start_date").notNull(),
+	endDate: date("end_date").notNull(),
+	workflowDate: date("workflow_date").notNull(), // For folder structure (YYYY/MM/DD)
+	
+	// Counts for quick stats
+	totalServices: integer("total_services").default(0).notNull(),
+	totalStudents: integer("total_students").default(0).notNull(),
+	warningsGenerated: integer("warnings_generated").default(0).notNull(),
+	warningsSent: integer("warnings_sent").default(0).notNull(),
+	warningsExported: integer("warnings_exported").default(0).notNull(),
+	
+	// Storage reference (Pascal case path)
+	storagePath: text("storage_path").notNull(),
+	// Example: "2025/10/15/Weekly/abc-123-uuid"
+	
+	// Admin tracking
+	initiatedBy: uuid("initiated_by").notNull().references(() => admins.id),
+	
+	// Timestamps
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	completedAt: timestamp("completed_at", { withTimezone: true, mode: 'string' }),
+	
+	// Error tracking (minimal)
+	errorMessage: text("error_message"),
+  }, (table) => [
+	index("idx_warning_workflows_mode").using("btree", table.mode.asc().nullsLast().op("text_ops")),
+	index("idx_warning_workflows_status").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	index("idx_warning_workflows_date_range").using("btree", 
+	  table.startDate.asc().nullsLast().op("date_ops"), 
+	  table.endDate.asc().nullsLast().op("date_ops")
+	),
+	index("idx_warning_workflows_workflow_date").using("btree", 
+	  table.workflowDate.desc().nullsFirst().op("date_ops")
+	),
+	index("idx_warning_workflows_created_at").using("btree", 
+	  table.createdAt.desc().nullsFirst().op("timestamptz_ops")
+	),
+	index("idx_warning_workflows_initiated_by").using("btree", 
+	  table.initiatedBy.asc().nullsLast().op("uuid_ops")
+	),
+	check("warning_workflows_mode_check", 
+	  sql`mode IN ('single', 'batch', 'weekly')`
+	),
+	check("warning_workflows_status_check", 
+	  sql`status IN ('draft', 'locked', 'completed', 'failed')`
+	),
+  ]);
