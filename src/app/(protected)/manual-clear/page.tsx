@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, isSameDay } from "date-fns";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   Check,
   ChevronRight,
@@ -79,9 +80,9 @@ type ManualClearFormValues = z.infer<typeof manualClearSchema>;
 
 function ManualClearPageContent() {
   const { success: showSuccess, error: showError } = useToastExt();
+  const { user: currentUser } = useGlobalContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [showStudentsList, setShowStudentsList] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMatricNumbers, setSelectedMatricNumbers] = useState<string[]>(
     []
@@ -108,20 +109,6 @@ function ManualClearPageContent() {
   });
 
   const selectedDate = form.watch("date");
-
-  // Load current user on component mount
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const user = await getCurrentUser();
-        setCurrentUser(user);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        showError("Authentication Error", "Failed to load user information");
-      }
-    };
-    loadUser();
-  }, [showError]);
 
   // Fetch levels using your established pattern
   const {
