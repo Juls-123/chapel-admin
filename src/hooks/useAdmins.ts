@@ -50,21 +50,38 @@ export function useAdmins(options: UseAdminsOptions = {}) {
           ...(search && { search })
         });
 
-        const result = await api.get<AdminListResponse>(`/api/admins?${params}`);
+        const response = await api.get<AdminListResponse>(`/api/admins?${params}`);
         
-        // Validate response data
-        if (!result || !Array.isArray(result.admins)) {
+        // Validate response data structure
+        if (!response || typeof response !== 'object') {
           throw new Error('Invalid response format from server');
         }
 
+        // Ensure we have the expected properties
+        const result = {
+          admins: Array.isArray(response.admins) ? response.admins : [],
+          pagination: {
+            page: response.pagination?.page || page,
+            limit: response.pagination?.limit || limit,
+            total: response.pagination?.total || 0,
+            totalPages: response.pagination?.totalPages || 0
+          }
+        };
+
+        // Validate and clean admin data
         const validatedAdmins = result.admins
           .map((admin: any) => {
-            const validation = adminSchema.safeParse(admin);
-            if (!validation.success) {
-              console.warn('Invalid admin data:', validation.error);
+            try {
+              const validation = adminSchema.safeParse(admin);
+              if (!validation.success) {
+                console.warn('Invalid admin data from API:', validation.error);
+                return null;
+              }
+              return validation.data;
+            } catch (error) {
+              console.error('Error validating admin data:', error);
               return null;
             }
-            return validation.data;
           })
           .filter((admin: any): admin is Admin => admin !== null);
 
@@ -83,13 +100,22 @@ export function useAdmins(options: UseAdminsOptions = {}) {
           };
         }
         
-        const { message } = handleError(error, { 
+        // Ensure we have a proper error object
+        const errorObj = error || new Error('An unknown error occurred');
+        const errorMessage = errorObj instanceof Error ? errorObj.message : String(errorObj);
+        
+        // Log the error with proper context
+        logError(errorObj, { 
           component: 'useAdmins',
-          action: 'fetchAdmins'
+          action: 'fetchAdmins',
+          message: errorMessage
         });
         
-        showError('Failed to load admins', message);
-        throw error;
+        // Show user-friendly error
+        showError('Failed to load admins', errorMessage);
+        
+        // Re-throw with proper error handling
+        throw errorObj;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

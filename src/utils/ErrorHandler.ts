@@ -97,23 +97,63 @@ class ErrorHandlerClass {
    */
   logError(error: Error | unknown, meta?: ErrorMeta & { category?: ErrorCategory }): void {
     const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      error: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      } : { message: String(error) },
-      meta: meta || {},
-    };
+    
+    try {
+      // Safely extract error information
+      let errorInfo: Record<string, any> = { message: 'Unknown error occurred' };
+      
+      if (error instanceof Error) {
+        errorInfo = {
+          name: error.name || 'Error',
+          message: error.message || 'No error message provided',
+          stack: error.stack || 'No stack trace available'
+        };
+      } else if (error) {
+        // Handle non-Error objects
+        errorInfo = {
+          name: 'Non-Error',
+          message: String(error),
+          originalValue: error
+        };
+      }
 
-    // In development, log to console
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorHandler:', logEntry);
+      // Safely prepare metadata
+      const safeMeta = meta || {};
+      
+      // Create a safe log entry
+      const logEntry = {
+        timestamp,
+        error: errorInfo,
+        meta: safeMeta,
+        category: this.classifyError(error)
+      };
+
+      // In development, log to console with error protection
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          console.error('[ErrorHandler]', JSON.stringify(logEntry, (key, value) => 
+            typeof value === 'bigint' ? value.toString() : value
+          ));
+        } catch (jsonError) {
+          // Fallback logging if JSON.stringify fails
+          console.error('[ErrorHandler] Error details (raw):', {
+            timestamp,
+            error: errorInfo,
+            metaKeys: Object.keys(safeMeta)
+          });
+        }
+      }
+
+      // TODO: In production, send to logging service (e.g., Sentry, LogRocket)
+      // Example: sendToLoggingService(logEntry);
+    } catch (handlerError) {
+      // Last resort error logging if something goes wrong in the error handler
+      console.error('[ErrorHandler] Critical error in error handler:', {
+        timestamp,
+        originalError: String(error),
+        handlerError: String(handlerError)
+      });
     }
-
-    // TODO: In production, send to logging service (e.g., Sentry, LogRocket)
-    // Example: sendToLoggingService(logEntry);
   }
 
   /**

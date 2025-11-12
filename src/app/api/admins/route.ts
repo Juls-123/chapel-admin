@@ -1,17 +1,26 @@
-// Admin CRUD API endpoints - GET (list) and POST (create)
-// PHASE 2: Supabase integration with comprehensive error handling
-
-import { NextRequest } from 'next/server';
-import { createRoute, executeQuery, ERROR_CODES } from '@/lib/routeFactory';
+// Admin CRUD API endpoints
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { adminSchema, adminCreateSchema } from '@/lib/validation/admins.schema';
+import { requireAdmin } from '@/lib/api/auth';
+import { buildResponse, handleApiError } from '@/lib/api/response';
 import type { Admin } from '@/lib/types';
 import type { z } from 'zod';
 
 type AdminCreate = z.infer<typeof adminCreateSchema>;
 
+// Initialize Supabase admin client
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 // GET /api/admins - List all admins with pagination
-export const GET = createRoute<Admin[]>(
-  async (request, { supabase, auth }) => {
+export async function GET(request: NextRequest) {
+  try {
+    // Require admin role
+    const { admin } = await requireAdmin({ role: 'admin' });
+
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
@@ -19,118 +28,142 @@ export const GET = createRoute<Admin[]>(
 
     const offset = (page - 1) * limit;
 
-    const result = await executeQuery(async () => {
-      let query = supabase
-        .from('admins')
-        .select('*')
-        .order('created_at', { ascending: false });
+    let query = supabaseAdmin
+      .from('admins')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
 
-      // Add search filter if provided
-      if (search) {
-        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
-      }
+    // Add search filter if provided
+    if (search) {
+      query = query.or(
+        `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`
+      );
+    }
 
-      // Add pagination
-      query = query.range(offset, offset + limit - 1);
+    // Add pagination
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
 
-      const { data, error, count } = await query;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new Error(`Failed to fetch admins: ${error.message}`);
+    }
 
-      if (error) {
-        throw new Error(`Failed to fetch admins: ${error.message}`);
-      }
-
-      // Validate response data
-      const validatedData = data?.map((admin: unknown) => {
-        const validation = adminSchema.safeParse(admin);
-        if (!validation.success) {
-          console.warn('Invalid admin data from database:', validation.error);
-          return null;
-        }
-        return validation.data;
-      }).filter(Boolean) || [];
-
-      return {
-        admins: validatedData,
+    // If no data, return empty array with pagination
+    if (!data) {
+      return NextResponse.json({
+        admins: [],
         pagination: {
           page,
           limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit)
-        }
-      };
-    }, 'GET /api/admins');
+          total: 0,
+          totalPages: 0,
+        },
+      });
+    }
 
-    return result;
-  },
-  {
-    requireAuth: true,
-    requiredRole: 'admin' // Both admin and superadmin can view
+    // Validate response data
+    const validatedData = (data || [])
+      .map((admin) => {
+        try {
+          const validation = adminSchema.safeParse(admin);
+          if (!validation.success) {
+            console.warn('Invalid admin data from database:', validation.error);
+            return null;
+          }
+          return validation.data;
+        } catch (error) {
+          console.error('Error validating admin data:', error);
+          return null;
+        }
+      })
+      .filter((admin): admin is Admin => admin !== null);
+
+    // Calculate pagination
+    const total = count || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    // Return response in the exact format expected by the frontend
+    return NextResponse.json({
+      admins: validatedData,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    });
+
+  } catch (error) {
+    return handleApiError(error, 'admins.GET');
   }
-);
+}
 
 // POST /api/admins - Create new admin
-export const POST = createRoute<Admin>(
-  async (request, { supabase, auth }) => {
+export async function POST(request: NextRequest) {
+  try {
+    // Require superadmin role
+    const { admin } = await requireAdmin({ role: 'superadmin' });
+
     const body = await request.json();
     
     // Validate request body
     const validation = adminCreateSchema.safeParse(body);
     if (!validation.success) {
-      return {
-        error: true,
-        message: 'Invalid admin data',
-        code: ERROR_CODES.VALIDATION_ERROR,
-        details: validation.error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
-      };
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: validation.error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+        },
+        { status: 400 }
+      );
     }
 
     const adminData: AdminCreate = validation.data;
 
-    const result = await executeQuery(async () => {
-      // Check if email already exists
-      const { data: existingAdmin, error: checkError } = await supabase
-        .from('admins')
-        .select('email')
-        .eq('email', adminData.email)
-        .single();
+    // Check if email already exists
+    const { data: existingAdmin, error: checkError } = await supabaseAdmin
+      .from('admins')
+      .select('email')
+      .eq('email', adminData.email)
+      .single();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw new Error(`Failed to check existing admin: ${checkError.message}`);
-      }
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+      throw new Error(`Failed to check existing admin: ${checkError.message}`);
+    }
 
-      if (existingAdmin) {
-        return {
-          error: true,
-          message: 'An admin with this email already exists',
-          code: ERROR_CODES.CONFLICT
-        };
-      }
+    if (existingAdmin) {
+      return NextResponse.json(
+        {
+          error: 'An admin with this email already exists',
+          code: 'DUPLICATE_EMAIL'
+        },
+        { status: 409 }
+      );
+    }
 
-      // Create new admin
-      const { data, error } = await supabase
-        .from('admins')
-        .insert([adminData])
-        .select()
-        .single();
+    // Create new admin
+    const { data, error: createError } = await supabaseAdmin
+      .from('admins')
+      .insert([adminData])
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to create admin: ${error.message}`);
-      }
+    if (createError) {
+      throw new Error(`Failed to create admin: ${createError.message}`);
+    }
 
-      // Validate response data
-      const validatedAdmin = adminSchema.safeParse(data);
-      if (!validatedAdmin.success) {
-        throw new Error('Invalid admin data returned from database');
-      }
+    // Validate response data
+    const validatedAdmin = adminSchema.safeParse(data);
+    if (!validatedAdmin.success) {
+      throw new Error('Invalid admin data returned from database');
+    }
 
-      return validatedAdmin.data;
-    }, 'POST /api/admins');
+    return NextResponse.json(
+      buildResponse({ data: validatedAdmin.data }),
+      { status: 201 }
+    );
 
-    return result;
-  },
-  {
-    requireAuth: true,
-    requiredRole: 'superadmin', // Only superadmins can create admins
-    validateBody: adminCreateSchema
+  } catch (error) {
+    return handleApiError(error, 'admins.POST');
   }
-);
+}
